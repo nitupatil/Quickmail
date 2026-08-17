@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaigns - Email Outreach Manager</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --primary-color: #0F172A;
+            --primary-hover: #1E293B;
+            --accent-color: #4F46E5;
+            --accent-hover: #4338CA;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            --sidebar-width: 260px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; display: flex; height: 100vh; }
+
+        /* Buttons */
+        .btn { padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; justify-content: center; }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-outline { background: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover:not(:disabled) { background: var(--bg-color); }
+        .btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-ghost { background: transparent; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; }
+        .btn-ghost:hover { background: var(--bg-color); color: var(--text-main); }
+        .btn-danger { color: var(--danger); background: transparent; border: 1px solid transparent; }
+        .btn-danger:hover { background: #FEF2F2; border-color: #FCA5A5; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+        /* Inputs */
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; outline: none; transition: var(--transition); background: var(--surface-color); color: var(--text-main); }
+        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        select.form-control { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--surface-color); height: 100vh; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 16px; z-index: 50; flex-shrink: 0; }
+        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; margin-bottom: 40px; padding: 0 12px; color: var(--primary-color); }
+        .logo i { color: var(--accent-color); font-size: 1.5rem; }
+        .nav-links { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: var(--transition); cursor: pointer; }
+        .nav-item:hover { background: var(--bg-color); color: var(--text-main); }
+        .nav-item.active { background: #EEF2FF; color: var(--accent-color); }
+        .nav-item i { font-size: 1.25rem; }
+
+        /* Main Workspace */
+        .main-workspace { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .header { height: 72px; background: var(--surface-color); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0; }
+        .header-title { font-size: 1.25rem; font-weight: 600; }
+        .header-subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 2px; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 32px; }
+        .max-w-screen { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+        /* Summary Cards */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .summary-card { background: var(--surface-color); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; }
+        .summary-header { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
+        .summary-header i { font-size: 1.25rem; }
+        .summary-value { font-size: 1.75rem; font-weight: 700; color: var(--text-main); }
+
+        /* Filters & Table */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--surface-color); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+        .filters { display: flex; gap: 12px; flex: 1; min-width: 300px; }
+        
+        .table-container { background: var(--surface-color); border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 16px; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); background: #F8FAFC; }
+        td { padding: 16px; font-size: 0.875rem; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #F8FAFC; }
+
+        .campaign-name { font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: block; }
+        .campaign-date { font-size: 0.75rem; color: var(--text-muted); }
+        
+        /* Badges */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-transform: capitalize; }
+        .badge.draft { background: #F1F5F9; color: #64748B; }
+        .badge.running { background: #EFF6FF; color: #3B82F6; }
+        .badge.paused { background: #FEF3C7; color: #D97706; }
+        .badge.completed { background: #ECFDF5; color: #10B981; }
+        .badge.cancelled { background: #FEF2F2; color: #EF4444; }
+        
+        .badge.pending { background: #F1F5F9; color: #64748B; }
+        .badge.sending { background: #EFF6FF; color: #3B82F6; }
+        .badge.sent { background: #ECFDF5; color: #10B981; }
+        .badge.failed { background: #FEF2F2; color: #EF4444; }
+        .badge.skipped { background: #F3F4F6; color: #9CA3AF; }
+
+        /* Progress Bar */
+        .progress-wrapper { width: 100%; min-width: 120px; }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 6px; font-weight: 500; color: var(--text-muted); }
+        .progress-track { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; display: flex; }
+        .progress-fill { height: 100%; background: var(--accent-color); transition: width 0.5s ease; }
+        .progress-fill.success { background: var(--success); }
+        .progress-fill.failed { background: var(--danger); }
+
+        /* Table Actions */
+        .action-cell { display: flex; gap: 4px; }
+        .action-cell .btn-ghost { padding: 6px; font-size: 1.1rem; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal { background: var(--surface-color); width: 100%; max-width: 700px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); transform: scale(0.95); transition: transform 0.2s ease; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal.large { max-width: 950px; }
+        .modal-overlay.show .modal { transform: scale(1); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--text-main); }
+        .close-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+        .close-btn:hover { color: var(--text-main); }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+
+        /* Wizard Steps */
+        .wizard-steps { display: flex; justify-content: space-between; margin-bottom: 24px; position: relative; }
+        .wizard-steps::before { content: ''; position: absolute; top: 12px; left: 0; right: 0; height: 2px; background: var(--border-color); z-index: 1; }
+        .step { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 25%; }
+        .step-circle { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-color); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); transition: var(--transition); }
+        .step.active .step-circle { border-color: var(--accent-color); background: var(--accent-color); color: white; }
+        .step.completed .step-circle { border-color: var(--success); background: var(--success); color: white; }
+        .step-label { font-size: 0.75rem; font-weight: 500; color: var(--text-muted); text-align: center; }
+        .step.active .step-label { color: var(--accent-color); }
+        
+        .wizard-content { display: none; }
+        .wizard-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Selectable Cards (Templates) */
+        .selectable-list { display: grid; grid-template-columns: 1fr; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 8px; }
+        .selectable-card { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; cursor: pointer; transition: var(--transition); }
+        .selectable-card:hover { border-color: var(--accent-color); background: #F8FAFC; }
+        .selectable-card.selected { border-color: var(--accent-color); background: #EEF2FF; box-shadow: 0 0 0 1px var(--accent-color); }
+        
+        /* Checkbox Table */
+        .check-table-wrapper { border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; max-height: 400px; overflow-y: auto; }
+        .check-table { width: 100%; border-collapse: collapse; }
+        .check-table th, .check-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; }
+        .check-table th { background: #F8FAFC; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 var(--border-color); }
+        .checkbox-cell { width: 40px; text-align: center; }
+        input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent-color); }
+
+        /* Review Grid */
+        .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #F8FAFC; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
+        .review-item { display: flex; flex-direction: column; gap: 4px; }
+        .review-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .review-value { font-size: 0.95rem; font-weight: 500; color: var(--text-main); word-break: break-word; }
+
+        /* Detail Modal Specifics */
+        .detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .stat-box { background: #F8FAFC; border: 1px solid var(--border-color); padding: 16px; border-radius: var(--radius-md); text-align: center; }
+        .stat-box-val { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+        .stat-box-lbl { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; margin-top: 4px; }
+
+        /* History indicators on contact selector */
+        .history-tag { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; display: inline-block; font-weight: 500; }
+        .history-tag.sent-yes { background: #FEF3C7; color: #D97706; }
+        .history-tag.sent-no { background: #F1F5F9; color: #64748B; }
+        .history-tag.replied-yes { background: #ECFDF5; color: #10B981; }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { min-width: 300px; padding: 16px 20px; border-radius: var(--radius-md); background: var(--surface-color); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid transparent; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
+        .toast i { font-size: 1.25rem; }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast-content h5 { font-size: 0.875rem; color: var(--text-main); margin-bottom: 2px; }
+        .toast-content p { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Empty States */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; color: #CBD5E1; }
+        .empty-state h3 { color: var(--text-main); font-size: 1.125rem; margin-bottom: 8px; font-weight: 600; }
+
+        /* Loading Spinner */
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Mobile Adjustments */
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 500; padding: 8px 16px; justify-content: space-between; align-items: center; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; }
+        .mobile-nav-item.active { color: var(--accent-color); }
+        .mobile-nav-item i { font-size: 1.5rem; }
+        
+        @media (max-width: 1024px) {
+            table th:nth-child(4), table td:nth-child(4),
+            table th:nth-child(5), table td:nth-child(5)
+            { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .mobile-nav { display: flex; }
+            .main-workspace { padding-bottom: 60px; }
+            .header { padding: 0 16px; flex-direction: column; align-items: flex-start; justify-content: center; height: auto; padding-top: 16px; padding-bottom: 16px; gap: 12px; }
+            .header-actions { width: 100%; justify-content: flex-end; }
+            .content-area { padding: 16px; }
+            
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 16px; background: var(--surface-color); padding: 16px; }
+            td { border: none; position: relative; padding: 8px 0; text-align: right; }
+            td:before { position: absolute; top: 8px; left: 0; width: 45%; padding-right: 10px; white-space: nowrap; text-align: left; font-weight: 600; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+            td:nth-of-type(1):before { content: "Campaign"; }
+            td:nth-of-type(2):before { content: "Template"; }
+            td:nth-of-type(3):before { content: "Progress"; }
+            td:nth-of-type(4):before { content: "Status"; }
+            td:nth-of-type(5):before { content: "Created"; }
+            td:nth-of-type(6):before { content: "Actions"; }
+            td:nth-of-type(6) { display: flex; justify-content: flex-end; gap: 8px; }
+
+            .review-grid { grid-template-columns: 1fr; }
+            .detail-stats { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="ph-fill ph-paper-plane-tilt"></i>
+            Outreach
+        </div>
+        <nav class="nav-links">
+            <a onclick="goTo('index.html')" class="nav-item"><i class="ph ph-squares-four"></i> Dashboard</a>
+            <a onclick="goTo('contacts.html')" class="nav-item"><i class="ph ph-users"></i> Contacts</a>
+            <a onclick="goTo('templates.html')" class="nav-item"><i class="ph ph-file-text"></i> Templates</a>
+            <a onclick="goTo('campaigns.html')" class="nav-item active"><i class="ph ph-megaphone"></i> Campaigns</a>
+            <a onclick="goTo('emailcreator.html')" class="nav-item"><i class="ph ph-pencil-simple"></i> Compose</a>
+            <a onclick="goTo('viewmails.html')" class="nav-item"><i class="ph ph-tray"></i> Inbox</a>
+            <a onclick="goTo('analytics.html')" class="nav-item"><i class="ph ph-chart-line-up"></i> Analytics</a>
+            <a onclick="goTo('settings.html')" class="nav-item" style="margin-top: auto;"><i class="ph ph-gear"></i> Settings</a>
+        </nav>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="main-workspace">
+        
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <div class="header-title">Campaigns</div>
+                <div class="header-subtitle">Create, manage and monitor your email outreach.</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="loadCampaigns(true)"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+                <button class="btn btn-primary" onclick="openNewCampaignModal()"><i class="ph ph-plus"></i> New Campaign</button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="max-w-screen">
+                
+                <!-- Summary Cards -->
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-header"><i class="ph ph-megaphone" style="color: var(--text-main);"></i> Total</div>
+                        <div class="summary-value" id="statTotal">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-header"><i class="ph ph-play-circle" style="color: var(--info);"></i> Running</div>
+                        <div class="summary-value" id="statRunning">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-header"><i class="ph ph-pencil-simple" style="color: var(--text-muted);"></i> Drafts</div>
+                        <div class="summary-value" id="statDrafts">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-header"><i class="ph ph-check-circle" style="color: var(--success);"></i> Completed</div>
+                        <div class="summary-value" id="statCompleted">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-header"><i class="ph ph-pause-circle" style="color: var(--warning);"></i> Paused</div>
+                        <div class="summary-value" id="statPaused">0</div>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="filters">
+                        <div style="position: relative; flex: 1; max-width: 300px;">
+                            <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 12px; color: var(--text-muted);"></i>
+                            <input type="text" class="form-control" id="searchCampaigns" placeholder="Search campaigns..." style="padding-left: 36px;" oninput="filterCampaigns()">
+                        </div>
+                        <select class="form-control" id="filterStatus" style="width: 150px;" onchange="filterCampaigns()">
+                            <option value="all">All Status</option>
+                            <option value="draft">Drafts</option>
+                            <option value="running">Running</option>
+                            <option value="paused">Paused</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Campaigns Table -->
+                <div class="table-container">
+                    <table id="campaignTable">
+                        <thead>
+                            <tr>
+                                <th>Campaign</th>
+                                <th>Template</th>
+                                <th style="width: 250px;">Progress</th>
+                                <th>Failed</th>
+                                <th>Replies</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaignList">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px;">
+                                    <i class="ph ph-spinner spinner" style="font-size: 2rem; color: var(--accent-color);"></i>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a onclick="goTo('index.html')" class="mobile-nav-item"><i class="ph ph-squares-four"></i><span>Home</span></a>
+        <a onclick="goTo('contacts.html')" class="mobile-nav-item"><i class="ph ph-users"></i><span>Contacts</span></a>
+        <a onclick="goTo('campaigns.html')" class="mobile-nav-item active"><div class="mobile-fab"><i class="ph ph-megaphone"></i></div></a>
+        <a onclick="goTo('viewmails.html')" class="mobile-nav-item"><i class="ph ph-tray"></i><span>Inbox</span></a>
+        <a onclick="goTo('settings.html')" class="mobile-nav-item"><i class="ph ph-gear"></i><span>Settings</span></a>
+    </nav>
+
+    <!-- NEW CAMPAIGN MODAL (WIZARD) -->
+    <div class="modal-overlay" id="newCampaignModal">
+        <div class="modal large">
+            <div class="modal-header">
+                <h2>Create New Campaign</h2>
+                <button class="close-btn" onclick="closeModal('newCampaignModal')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="wizard-steps">
+                    <div class="step active" id="step1-indicator"><div class="step-circle">1</div><div class="step-label">Details</div></div>
+                    <div class="step" id="step2-indicator"><div class="step-circle">2</div><div class="step-label">Template</div></div>
+                    <div class="step" id="step3-indicator"><div class="step-circle">3</div><div class="step-label">Contacts & History</div></div>
+                    <div class="step" id="step4-indicator"><div class="step-circle">4</div><div class="step-label">Review</div></div>
+                </div>
+
+                <!-- STEP 1: Details -->
+                <div class="wizard-content active" id="step1-content">
+                    <div class="form-group">
+                        <label class="form-label">Campaign Name</label>
+                        <input type="text" class="form-control" id="newCampName" placeholder="e.g. Q3 Outreach - Tech Leads">
+                    </div>
+                </div>
+
+                <!-- STEP 2: Template -->
+                <div class="wizard-content" id="step2-content">
+                    <div class="form-group">
+                        <label class="form-label">Select Email Template</label>
+                        <div class="selectable-list" id="templateSelectList">
+                            <div style="padding: 20px; text-align: center;"><i class="ph ph-spinner spinner"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Contacts & History Inspection -->
+                <div class="wizard-content" id="step3-content">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Review your contacts below. The table indicates if this template was already sent to them, how many times, and if they replied.
+                    </p>
+                    <div class="toolbar" style="margin-bottom: 12px; padding: 12px;">
+                        <input type="text" class="form-control" id="contactSearchInput" placeholder="Search contacts..." oninput="filterModalContacts()">
+                        <div style="font-size: 0.875rem; font-weight: 500; white-space: nowrap;">
+                            <span id="selectedContactCount">0</span> selected
+                        </div>
+                    </div>
+                    <div class="check-table-wrapper">
+                        <table class="check-table">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-cell"><input type="checkbox" id="selectAllContacts" onchange="toggleSelectAllContacts()"></th>
+                                    <th>Name & Email</th>
+                                    <th>Company</th>
+                                    <th>Template History</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contactSelectList">
+                                <tr><td colspan="4" style="text-align: center;"><i class="ph ph-spinner spinner"></i></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Review -->
+                <div class="wizard-content" id="step4-content">
+                    <div class="review-grid">
+                        <div class="review-item">
+                            <span class="review-label">Campaign Name</span>
+                            <span class="review-value" id="revCampName">...</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Total Recipients</span>
+                            <span class="review-value" id="revCampRecipients">...</span>
+                        </div>
+                        <div class="review-item" style="grid-column: 1 / -1;">
+                            <span class="review-label">Template</span>
+                            <span class="review-value" id="revCampTemplate">...</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="wizBtnBack" style="visibility: hidden;" onclick="prevWizardStep()">Back</button>
+                <button class="btn btn-primary" id="wizBtnNext" onclick="nextWizardStep()">Continue <i class="ph ph-arrow-right"></i></button>
+                <button class="btn btn-primary" id="wizBtnCreate" style="display: none;" onclick="createCampaign()"><i class="ph ph-check"></i> Create Campaign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAMPAIGN DETAILS MODAL -->
+    <div class="modal-overlay" id="detailsModal">
+        <div class="modal large">
+            <div class="modal-header">
+                <div>
+                    <h2 id="detCampName" style="margin-bottom: 4px;">Campaign Details</h2>
+                    <span class="badge" id="detCampStatus">Status</span>
+                </div>
+                <button class="close-btn" onclick="closeModal('detailsModal')"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="detail-stats">
+                    <div class="stat-box"><div class="stat-box-val" id="detTotal">0</div><div class="stat-box-lbl">Total</div></div>
+                    <div class="stat-box"><div class="stat-box-val" id="detSent" style="color: var(--success);">0</div><div class="stat-box-lbl">Sent</div></div>
+                    <div class="stat-box"><div class="stat-box-val" id="detFailed" style="color: var(--danger);">0</div><div class="stat-box-lbl">Failed</div></div>
+                    <div class="stat-box"><div class="stat-box-val" id="detReplies" style="color: var(--info);">0</div><div class="stat-box-lbl">Replies</div></div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <div class="progress-header"><span>Sending Progress</span><span id="detProgressText">0%</span></div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="detProgressBar" style="width: 0%;"></div>
+                        <div class="progress-fill failed" id="detProgressFail" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="font-size: 1rem; font-weight: 600;">Recipients & Interaction Status</h3>
+                    <button class="btn btn-outline btn-sm" id="btnRetryFailed" style="display: none;" onclick="retryFailed()"><i class="ph ph-arrow-counter-clockwise"></i> Retry Failed</button>
+                </div>
+
+                <div class="check-table-wrapper" style="max-height: 350px;">
+                    <table class="check-table">
+                        <thead>
+                            <tr>
+                                <th>Recipient</th>
+                                <th>Delivery Status</th>
+                                <th>Reply Received?</th>
+                                <th>Timestamps / Errors</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detRecipientList">
+                            <tr><td colspan="4" style="text-align: center;"><i class="ph ph-spinner spinner"></i></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('detailsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = "https://ewclfynaxnufbjazkame.supabase.co".trim();
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I".trim();
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3lYx7EQ8WY4n-PvYLB6XAukUH9S3oJiVercDea3-VRIN_5c9VzQEPk93O9wx6UlJA/exec";
+
+        let supabaseClient;
+        let currentUser = null;
+        
+        let allCampaigns = [];
+        let allTemplates = [];
+        let allContacts = [];
+        
+        // Wizard State
+        let wizardStep = 1;
+        let selectedTemplateId = null;
+        let selectedContactIds = new Set();
+        let contactTemplateHistory = {};
+
+        // Polling State
+        let pollingTimer = null;
+        let currentlyViewingCampaignId = null;
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        function goTo(page) { window.location.href = page; }
+
+        async function init() {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                const savedUser = localStorage.getItem('outreach_current_user');
+                if (savedUser) currentUser = JSON.parse(savedUser);
+
+                if (!currentUser || !currentUser.id) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                await Promise.all([
+                    loadCampaigns(),
+                    loadTemplates(),
+                    loadContacts()
+                ]);
+
+                // Automatically check replies across all campaigns on page load
+                await syncAllCampaignsReplies();
+
+                checkPollingStatus();
+            } catch (err) {
+                console.error("Init error", err);
+                showToast("Failed to initialize workspace", "error");
+            }
+        }
+
+        async function loadCampaigns(isSilent = false) {
+            try {
+                if (!isSilent) document.getElementById('campaignList').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;"><i class="ph ph-spinner spinner" style="font-size: 2rem; color: var(--accent-color);"></i></td></tr>';
+
+                const { data, error } = await supabaseClient
+                    .from('campaigns')
+                    .select('*, email_templates ( name )')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                
+                allCampaigns = data || [];
+                renderSummaryCards();
+                filterCampaigns();
+                
+                if (isSilent && currentlyViewingCampaignId) {
+                    const c = allCampaigns.find(c => c.id === currentlyViewingCampaignId);
+                    if (c) updateCampaignDetailsHeader(c);
+                }
+            } catch (err) {
+                console.error("Failed to load campaigns", err);
+            }
+        }
+
+        // Global background sync to check incoming email_messages for all active/completed campaigns
+        async function syncAllCampaignsReplies() {
+            try {
+                for (const camp of allCampaigns) {
+                    await checkAndSyncRepliesForCampaign(camp.id);
+                }
+                // Reload summary & filters if counts updated
+                renderSummaryCards();
+                filterCampaigns();
+            } catch (e) {
+                console.error("Global reply sync error:", e);
+            }
+        }
+
+        async function checkAndSyncRepliesForCampaign(campaignId) {
+            try {
+                // Get all sent recipients who haven't been marked as replied yet
+                const { data: recipients } = await supabaseClient
+                    .from('campaign_recipients')
+                    .select('id, contact_id, email, sent_at, replied')
+                    .eq('campaign_id', campaignId)
+                    .eq('status', 'sent')
+                    .eq('replied', false);
+
+                if (!recipients || recipients.length === 0) return;
+
+                let updatedAny = false;
+
+                for (const r of recipients) {
+                    // Look for any incoming message matching this recipient's email address
+                    const { data: incomingMsgs } = await supabaseClient
+                        .from('email_messages')
+                        .select('id, received_at')
+                        .eq('direction', 'incoming')
+                        .ilike('from_email', `%${r.email}%`)
+                        .limit(1);
+
+                    if (incomingMsgs && incomingMsgs.length > 0) {
+                        // Mark recipient as replied
+                        await supabaseClient
+                            .from('campaign_recipients')
+                            .update({ replied: true, replied_at: incomingMsgs[0].received_at || new Date().toISOString() })
+                            .eq('id', r.id);
+                        updatedAny = true;
+                    }
+                }
+
+                if (updatedAny) {
+                    // Recalculate total replied count for this campaign
+                    const { count } = await supabaseClient
+                        .from('campaign_recipients')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('campaign_id', campaignId)
+                        .eq('replied', true);
+
+                    await supabaseClient
+                        .from('campaigns')
+                        .update({ replied_count: count || 0 })
+                        .eq('id', campaignId);
+                }
+            } catch (err) {
+                console.error(`Error syncing replies for campaign ${campaignId}:`, err);
+            }
+        }
+
+        function renderSummaryCards() {
+            let running = 0, drafts = 0, completed = 0, paused = 0;
+            allCampaigns.forEach(c => {
+                if (c.status === 'running') running++;
+                else if (c.status === 'draft') drafts++;
+                else if (c.status === 'completed') completed++;
+                else if (c.status === 'paused') paused++;
+            });
+
+            document.getElementById('statTotal').textContent = allCampaigns.length;
+            document.getElementById('statRunning').textContent = running;
+            document.getElementById('statDrafts').textContent = drafts;
+            document.getElementById('statCompleted').textContent = completed;
+            document.getElementById('statPaused').textContent = paused;
+        }
+
+        function filterCampaigns() {
+            const term = document.getElementById('searchCampaigns').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+            const tbody = document.getElementById('campaignList');
+            
+            const filtered = allCampaigns.filter(c => {
+                const matchName = c.name.toLowerCase().includes(term);
+                const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+                return matchName && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="ph ph-megaphone"></i><h3>No campaigns found</h3></div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(c => {
+                const tplName = c.email_templates ? c.email_templates.name : 'Unknown Template';
+                const createdDate = new Date(c.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                
+                const total = c.total_recipients || 1;
+                const sent = c.sent_count || 0;
+                const failed = c.failed_count || 0;
+                const pctSent = Math.min(100, Math.round((sent / total) * 100));
+                const pctFailed = Math.min(100, Math.round((failed / total) * 100));
+                
+                const badgeClass = formatStatus(c.status);
+
+                return `
+                    <tr>
+                        <td>
+                            <span class="campaign-name">${escapeHTML(c.name)}</span>
+                            <span class="campaign-date">ID: ${c.id.substring(0,8)}</span>
+                        </td>
+                        <td><span style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(tplName)}</span></td>
+                        <td>
+                            <div class="progress-wrapper">
+                                <div class="progress-header"><span>${sent} / ${c.total_recipients}</span> <span>${pctSent}%</span></div>
+                                <div class="progress-track">
+                                    <div class="progress-fill ${c.status === 'running' ? 'success' : ''}" style="width: ${pctSent}%;"></div>
+                                    <div class="progress-fill failed" style="width: ${pctFailed}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color: var(--danger); font-weight: 500;">${failed}</span></td>
+                        <td><span style="color: var(--info); font-weight: 500;">${c.replied_count || 0}</span></td>
+                        <td><span class="badge ${badgeClass}"><i class="${getStatusIcon(c.status)}"></i> ${c.status}</span></td>
+                        <td>${createdDate}</td>
+                        <td>
+                            <div class="action-cell">
+                                <button class="btn btn-ghost" title="View Details" onclick="openCampaignDetails('${c.id}')"><i class="ph ph-eye"></i></button>
+                                ${getActionButtons(c)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getActionButtons(c) {
+            let html = '';
+            if (c.status === 'draft') {
+                html += `<button class="btn btn-ghost" title="Start Campaign" onclick="startCampaign('${c.id}')"><i class="ph ph-play" style="color: var(--success);"></i></button>`;
+                html += `<button class="btn btn-ghost btn-danger" title="Delete" onclick="deleteCampaign('${c.id}')"><i class="ph ph-trash"></i></button>`;
+            } else if (c.status === 'running') {
+                html += `<button class="btn btn-ghost" title="Pause Campaign" onclick="pauseCampaign('${c.id}')"><i class="ph ph-pause" style="color: var(--warning);"></i></button>`;
+            } else if (c.status === 'paused') {
+                html += `<button class="btn btn-ghost" title="Resume Campaign" onclick="resumeCampaign('${c.id}')"><i class="ph ph-play" style="color: var(--success);"></i></button>`;
+                html += `<button class="btn btn-ghost" title="Cancel Campaign" onclick="cancelCampaign('${c.id}')"><i class="ph ph-x-circle" style="color: var(--danger);"></i></button>`;
+            } else if (c.status === 'completed' || c.status === 'cancelled') {
+                html += `<button class="btn btn-ghost btn-danger" title="Delete" onclick="deleteCampaign('${c.id}')"><i class="ph ph-trash"></i></button>`;
+            }
+            return html;
+        }
+
+        async function loadTemplates() {
+            try {
+                const { data } = await supabaseClient.from('email_templates').select('id, name, subject').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+                allTemplates = data || [];
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadContacts() {
+            try {
+                const { data } = await supabaseClient.from('contacts').select('id, name, email, company').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+                allContacts = data || [];
+            } catch(e) { console.error(e); }
+        }
+
+        // ==========================================
+        // WIZARD & TEMPLATE HISTORY INSPECTION
+        // ==========================================
+        async function openNewCampaignModal() {
+            if (allTemplates.length === 0) { showToast("Please create an Email Template first.", "warning"); return; }
+            if (allContacts.length === 0) { showToast("Please add Contacts first.", "warning"); return; }
+
+            wizardStep = 1;
+            selectedTemplateId = null;
+            selectedContactIds.clear();
+            document.getElementById('newCampName').value = '';
+            
+            updateWizardUI();
+            
+            document.getElementById('templateSelectList').innerHTML = allTemplates.map(t => `
+                <div class="selectable-card" id="tpl-card-${t.id}" onclick="selectTemplate('${t.id}')">
+                    <div style="font-weight: 600; margin-bottom: 4px;">${escapeHTML(t.name)}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Subj: ${escapeHTML(t.subject)}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('newCampaignModal').classList.add('show');
+        }
+
+        async function selectTemplate(id) {
+            selectedTemplateId = id;
+            document.querySelectorAll('.selectable-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(`tpl-card-${id}`).classList.add('selected');
+
+            await fetchTemplateContactHistory(id);
+            renderWizardContacts();
+        }
+
+        async function fetchTemplateContactHistory(templateId) {
+            contactTemplateHistory = {};
+            try {
+                const { data: pastCamps } = await supabaseClient
+                    .from('campaigns')
+                    .select('id')
+                    .eq('template_id', templateId)
+                    .eq('user_id', currentUser.id);
+
+                if (!pastCamps || pastCamps.length === 0) return;
+                const campIds = pastCamps.map(c => c.id);
+
+                const { data: recs } = await supabaseClient
+                    .from('campaign_recipients')
+                    .select('contact_id, status, sent_at, replied')
+                    .in('campaign_id', campIds);
+
+                if (recs) {
+                    recs.forEach(r => {
+                        if (!contactTemplateHistory[r.contact_id]) {
+                            contactTemplateHistory[r.contact_id] = { count: 0, lastDate: null, replied: false };
+                        }
+                        if (r.status === 'sent') {
+                            contactTemplateHistory[r.contact_id].count++;
+                            if (!contactTemplateHistory[r.contact_id].lastDate || new Date(r.sent_at) > new Date(contactTemplateHistory[r.contact_id].lastDate)) {
+                                contactTemplateHistory[r.contact_id].lastDate = r.sent_at;
+                            }
+                        }
+                        if (r.replied) {
+                            contactTemplateHistory[r.contact_id].replied = true;
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Error loading template history:", err);
+            }
+        }
+
+        function renderWizardContacts(searchTerm = '') {
+            const term = searchTerm.toLowerCase();
+            const filtered = allContacts.filter(c => 
+                (c.name || '').toLowerCase().includes(term) || 
+                (c.email || '').toLowerCase().includes(term)
+            );
+
+            document.getElementById('contactSelectList').innerHTML = filtered.map(c => {
+                const history = contactTemplateHistory[c.id];
+                let historyHtml = `<span class="history-tag sent-no">Never sent</span>`;
+                
+                if (history && history.count > 0) {
+                    const dateStr = new Date(history.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+                    const replyBadge = history.replied ? ` <span class="history-tag replied-yes">Replied</span>` : '';
+                    historyHtml = `<span class="history-tag sent-yes">Sent ${history.count}x (${dateStr})</span>${replyBadge}`;
+                }
+
+                return `
+                    <tr>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="contact-check" value="${c.id}" ${selectedContactIds.has(c.id) ? 'checked' : ''} onchange="toggleContactSelection('${c.id}', this.checked)">
+                        </td>
+                        <td>
+                            <strong>${escapeHTML(c.name || 'Unknown')}</strong><br>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${escapeHTML(c.email)}</span>
+                        </td>
+                        <td><span style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(c.company || '-')}</span></td>
+                        <td>${historyHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            updateContactCount();
+        }
+
+        function filterModalContacts() {
+            renderWizardContacts(document.getElementById('contactSearchInput').value);
+        }
+
+        function toggleContactSelection(id, isChecked) {
+            if (isChecked) selectedContactIds.add(id);
+            else selectedContactIds.delete(id);
+            updateContactCount();
+        }
+
+        function toggleSelectAllContacts() {
+            const isChecked = document.getElementById('selectAllContacts').checked;
+            const term = document.getElementById('contactSearchInput').value.toLowerCase();
+            
+            allContacts.forEach(c => {
+                const matches = (c.name || '').toLowerCase().includes(term) || (c.email || '').toLowerCase().includes(term);
+                if (matches) {
+                    if (isChecked) selectedContactIds.add(c.id);
+                    else selectedContactIds.delete(c.id);
+                }
+            });
+            renderWizardContacts(term);
+        }
+
+        function updateContactCount() {
+            document.getElementById('selectedContactCount').textContent = selectedContactIds.size;
+        }
+
+        function nextWizardStep() {
+            if (wizardStep === 1) {
+                if (!document.getElementById('newCampName').value.trim()) { showToast("Please enter a campaign name", "warning"); return; }
+            } else if (wizardStep === 2) {
+                if (!selectedTemplateId) { showToast("Please select a template", "warning"); return; }
+            } else if (wizardStep === 3) {
+                if (selectedContactIds.size === 0) { showToast("Please select at least one contact", "warning"); return; }
+                prepareReviewStep();
+            }
+
+            if (wizardStep < 4) {
+                wizardStep++;
+                updateWizardUI();
+            }
+        }
+
+        function prevWizardStep() {
+            if (wizardStep > 1) {
+                wizardStep--;
+                updateWizardUI();
+            }
+        }
+
+        function prepareReviewStep() {
+            const campName = document.getElementById('newCampName').value.trim();
+            const tpl = allTemplates.find(t => t.id === selectedTemplateId);
+            
+            document.getElementById('revCampName').textContent = campName;
+            document.getElementById('revCampRecipients').textContent = selectedContactIds.size;
+            document.getElementById('revCampTemplate').innerHTML = `<strong>${escapeHTML(tpl.name)}</strong><br><span style="font-size:0.8rem;color:var(--text-muted);">Subj: ${escapeHTML(tpl.subject)}</span>`;
+        }
+
+        function updateWizardUI() {
+            for(let i=1; i<=4; i++) {
+                const step = document.getElementById(`step${i}-indicator`);
+                step.className = 'step';
+                if (i === wizardStep) step.classList.add('active');
+                if (i < wizardStep) step.classList.add('completed');
+                document.getElementById(`step${i}-content`).classList.remove('active');
+            }
+            document.getElementById(`step${wizardStep}-content`).classList.add('active');
+
+            document.getElementById('wizBtnBack').style.visibility = wizardStep === 1 ? 'hidden' : 'visible';
+            if (wizardStep === 4) {
+                document.getElementById('wizBtnNext').style.display = 'none';
+                document.getElementById('wizBtnCreate').style.display = 'inline-flex';
+            } else {
+                document.getElementById('wizBtnNext').style.display = 'inline-flex';
+                document.getElementById('wizBtnCreate').style.display = 'none';
+            }
+        }
+
+        async function createCampaign() {
+            const btn = document.getElementById('wizBtnCreate');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner spinner"></i> Creating...';
+
+            try {
+                const campName = document.getElementById('newCampName').value.trim();
+                const campData = {
+                    user_id: currentUser.id,
+                    name: campName,
+                    template_id: selectedTemplateId,
+                    status: "draft",
+                    total_recipients: selectedContactIds.size,
+                    sent_count: 0,
+                    failed_count: 0,
+                    replied_count: 0
+                };
+
+                const { data: campaign, error: campErr } = await supabaseClient.from('campaigns').insert([campData]).select().single();
+                if (campErr) throw campErr;
+
+                const selectedContactsArray = allContacts.filter(c => selectedContactIds.has(c.id));
+                const recipientsData = selectedContactsArray.map(c => ({
+                    campaign_id: campaign.id,
+                    contact_id: c.id,
+                    email: c.email,
+                    name: c.name,
+                    company: c.company,
+                    location: c.location,
+                    status: 'pending',
+                    attempt_count: 0,
+                    replied: false,
+                    merge_data: { name: c.name, email: c.email, company: c.company, location: c.location }
+                }));
+
+                const { error: recErr } = await supabaseClient.from('campaign_recipients').insert(recipientsData);
+                if (recErr) throw recErr;
+
+                showToast("Campaign drafted successfully!", "success");
+                closeModal('newCampaignModal');
+                loadCampaigns();
+            } catch (err) {
+                console.error("Creation error:", err);
+                showToast("Failed to create campaign.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-check"></i> Create Campaign';
+            }
+        }
+
+        // ==========================================
+        // CAMPAIGN ACTIONS
+        // ==========================================
+        async function startCampaign(id) {
+            if(!confirm("Start this campaign?\n\nEmail sending will run continuously in the background queue.")) return;
+            try {
+                const { error } = await supabaseClient.from('campaigns')
+                    .update({ status: 'running', started_at: new Date().toISOString() })
+                    .eq('id', id).eq('user_id', currentUser.id);
+                if (error) throw error;
+                
+                showToast("Campaign started! Background queue triggered.", "success");
+                triggerBackendQueue();
+                loadCampaigns();
+                checkPollingStatus();
+            } catch(e) { console.error(e); showToast("Failed to start", "error"); }
+        }
+
+        async function pauseCampaign(id) {
+            if(!confirm("Pause this campaign?")) return;
+            try {
+                const { error } = await supabaseClient.from('campaigns')
+                    .update({ status: 'paused', paused_at: new Date().toISOString() })
+                    .eq('id', id).eq('user_id', currentUser.id);
+                if (error) throw error;
+                showToast("Campaign paused.", "success");
+                loadCampaigns();
+            } catch(e) { console.error(e); showToast("Failed to pause", "error"); }
+        }
+
+        async function resumeCampaign(id) {
+            try {
+                const { error } = await supabaseClient.from('campaigns')
+                    .update({ status: 'running', paused_at: null })
+                    .eq('id', id).eq('user_id', currentUser.id);
+                if (error) throw error;
+                showToast("Campaign resumed!", "success");
+                triggerBackendQueue();
+                loadCampaigns();
+                checkPollingStatus();
+            } catch(e) { console.error(e); showToast("Failed to resume", "error"); }
+        }
+
+        async function cancelCampaign(id) {
+            if(!confirm("Are you SURE you want to cancel? All pending emails will be skipped.")) return;
+            try {
+                await supabaseClient.from('campaigns').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', id).eq('user_id', currentUser.id);
+                await supabaseClient.from('campaign_recipients').update({ status: 'skipped' }).eq('campaign_id', id).eq('status', 'pending');
+                showToast("Campaign cancelled.", "warning");
+                loadCampaigns();
+            } catch(e) { console.error(e); showToast("Failed to cancel", "error"); }
+        }
+
+        async function deleteCampaign(id) {
+            if(!confirm("Permanently delete this campaign and all its tracking data?")) return;
+            try {
+                const { error } = await supabaseClient.from('campaigns').delete().eq('id', id).eq('user_id', currentUser.id);
+                if (error) throw error;
+                showToast("Campaign deleted.", "success");
+                loadCampaigns();
+            } catch(e) { console.error(e); showToast("Failed to delete", "error"); }
+        }
+
+        function triggerBackendQueue() {
+            if (!APPS_SCRIPT_URL) return;
+            const formData = new URLSearchParams();
+            formData.append("action", "process_email_queue");
+            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: formData }).catch(e => console.log(e));
+        }
+
+        function checkPollingStatus() {
+            const hasRunning = allCampaigns.some(c => c.status === 'running');
+            if (hasRunning && !pollingTimer) {
+                pollingTimer = setInterval(async () => {
+                    await syncAllCampaignsReplies();
+                    loadCampaigns(true);
+                    if (currentlyViewingCampaignId) loadCampaignRecipients(currentlyViewingCampaignId, true);
+                }, 8000);
+            } else if (!hasRunning && pollingTimer) {
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+        }
+
+        // ==========================================
+        // CAMPAIGN DETAILS MODAL
+        // ==========================================
+        async function openCampaignDetails(id) {
+            currentlyViewingCampaignId = id;
+            const c = allCampaigns.find(c => c.id === id);
+            if (!c) return;
+
+            updateCampaignDetailsHeader(c);
+            document.getElementById('detRecipientList').innerHTML = '<tr><td colspan="4" style="text-align: center;"><i class="ph ph-spinner spinner"></i></td></tr>';
+            document.getElementById('detailsModal').classList.add('show');
+
+            await checkAndSyncRepliesForCampaign(id);
+            await loadCampaigns(true);
+            loadCampaignRecipients(id);
+        }
+
+        function updateCampaignDetailsHeader(c) {
+            document.getElementById('detCampName').textContent = c.name;
+            const badge = document.getElementById('detCampStatus');
+            badge.textContent = c.status;
+            badge.className = `badge ${formatStatus(c.status)}`;
+
+            const total = c.total_recipients || 1;
+            const sent = c.sent_count || 0;
+            const failed = c.failed_count || 0;
+            const pctSent = Math.min(100, Math.round((sent / total) * 100));
+            const pctFail = Math.min(100, Math.round((failed / total) * 100));
+
+            document.getElementById('detTotal').textContent = total;
+            document.getElementById('detSent').textContent = sent;
+            document.getElementById('detFailed').textContent = failed;
+            document.getElementById('detReplies').textContent = c.replied_count || 0;
+
+            document.getElementById('detProgressText').textContent = `${pctSent}% Sent`;
+            document.getElementById('detProgressBar').style.width = `${pctSent}%`;
+            document.getElementById('detProgressFail').style.width = `${pctFail}%`;
+
+            document.getElementById('btnRetryFailed').style.display = failed > 0 ? 'inline-flex' : 'none';
+        }
+
+        async function loadCampaignRecipients(campaignId, isSilent = false) {
+            try {
+                const { data, error } = await supabaseClient.from('campaign_recipients')
+                    .select('id, name, email, status, attempt_count, error_message, sent_at, replied, replied_at')
+                    .eq('campaign_id', campaignId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                if (!data || data.length === 0) return;
+
+                document.getElementById('detRecipientList').innerHTML = data.map(r => {
+                    const badgeClass = formatStatus(r.status);
+                    let replyStatus = r.replied ? `<span class="history-tag replied-yes"><i class="ph ph-check"></i> Yes</span>` : `<span style="color:var(--text-muted); font-size:0.8rem;">No</span>`;
+                    
+                    let details = '';
+                    if (r.status === 'failed') details = `<span style="color:var(--danger);font-size:0.75rem;">${escapeHTML(r.error_message || 'Unknown error')}</span>`;
+                    else if (r.status === 'sent') details = `<span style="color:var(--text-muted);font-size:0.75rem;">Sent: ${new Date(r.sent_at).toLocaleTimeString()}</span>`;
+                    else details = `<span class="badge ${badgeClass}">${r.status}</span>`;
+
+                    return `
+                        <tr>
+                            <td><strong>${escapeHTML(r.email)}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${escapeHTML(r.name || '-')}</span></td>
+                            <td><span class="badge ${badgeClass}">${r.status}</span></td>
+                            <td>${replyStatus}</td>
+                            <td>${details}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) { console.error("Error loading recipients", err); }
+        }
+
+        async function retryFailed() {
+            if (!currentlyViewingCampaignId) return;
+            const btn = document.getElementById('btnRetryFailed');
+            btn.innerHTML = '<i class="ph ph-spinner spinner"></i>';
+            btn.disabled = true;
+
+            try {
+                await supabaseClient.from('campaign_recipients').update({ status: 'pending', error_message: null }).eq('campaign_id', currentlyViewingCampaignId).eq('status', 'failed');
+                await supabaseClient.from('campaigns').update({ status: 'running' }).eq('id', currentlyViewingCampaignId).eq('user_id', currentUser.id);
+
+                showToast("Failed emails queued for retry!", "success");
+                triggerBackendQueue();
+                loadCampaigns();
+                loadCampaignRecipients(currentlyViewingCampaignId);
+                checkPollingStatus();
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to initiate retry", "error");
+            } finally {
+                btn.innerHTML = '<i class="ph ph-arrow-counter-clockwise"></i> Retry Failed';
+                btn.disabled = false;
+            }
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        function formatStatus(status) {
+            const s = (status || '').toLowerCase();
+            if (['draft', 'pending'].includes(s)) return 'draft';
+            if (['running', 'sending'].includes(s)) return 'running';
+            if (s === 'paused') return 'paused';
+            if (['completed', 'sent'].includes(s)) return 'completed';
+            if (['cancelled', 'failed'].includes(s)) return 'cancelled';
+            if (s === 'skipped') return 'skipped';
+            return 'draft';
+        }
+
+        function getStatusIcon(status) {
+            const s = (status || '').toLowerCase();
+            if (s === 'draft') return 'ph-pencil-simple';
+            if (s === 'running') return 'ph-spinner spinner';
+            if (s === 'paused') return 'ph-pause-circle';
+            if (s === 'completed') return 'ph-check-circle';
+            if (s === 'cancelled') return 'ph-x-circle';
+            return 'ph-circle';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'warning-circle';
+            toast.innerHTML = `<i class="ph ph-${icon}"></i><div class="toast-content"><h5>${type.charAt(0).toUpperCase() + type.slice(1)}</h5><p>${escapeHTML(message)}</p></div>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+    </script>
+</body>
+</html>

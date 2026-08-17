@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Email Outreach Manager</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --primary-color: #0F172A;
+            --primary-hover: #1E293B;
+            --accent-color: #4F46E5;
+            --accent-hover: #4338CA;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            --sidebar-width: 260px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow: hidden; display: flex; height: 100vh; }
+
+        /* Buttons & Inputs */
+        .btn { padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; justify-content: center; }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-outline { background: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover:not(:disabled) { background: var(--bg-color); }
+        .btn-ghost { background: transparent; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; }
+        .btn-ghost:hover { background: var(--bg-color); color: var(--text-main); }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+        .form-control { width: 100%; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; outline: none; transition: var(--transition); background: var(--surface-color); color: var(--text-main); }
+        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        select.form-control { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+
+        /* Skeleton Loading */
+        .skeleton { background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--surface-color); height: 100vh; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 16px; z-index: 50; flex-shrink: 0; }
+        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; margin-bottom: 40px; padding: 0 12px; color: var(--primary-color); }
+        .logo i { color: var(--accent-color); font-size: 1.5rem; }
+        .nav-links { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: var(--transition); cursor: pointer; }
+        .nav-item:hover { background: var(--bg-color); color: var(--text-main); }
+        .nav-item.active { background: #EEF2FF; color: var(--accent-color); }
+        .nav-item i { font-size: 1.25rem; }
+
+        /* Main Workspace */
+        .main-workspace { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .header { height: 72px; background: var(--surface-color); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0; }
+        .header-title { font-size: 1.25rem; font-weight: 600; }
+        .header-subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 2px; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 32px; display: flex; justify-content: center; }
+        .max-w-screen { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px; }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+        .kpi-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
+        .kpi-header { display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.875rem; font-weight: 500; }
+        .kpi-header i { font-size: 1.25rem; }
+        .kpi-value { font-size: 1.75rem; font-weight: 700; color: var(--text-main); }
+        .kpi-trend { font-size: 0.75rem; font-weight: 500; }
+        .kpi-trend.up { color: var(--success); }
+        .kpi-trend.down { color: var(--danger); }
+        .kpi-trend.neutral { color: var(--text-muted); }
+
+        /* Dashboard Layout Sections */
+        .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        @media (max-width: 1024px) { .chart-row { grid-template-columns: 1fr; } }
+        
+        .panel { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; }
+        .panel-title { font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 12px 16px; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); background: #F8FAFC; white-space: nowrap; }
+        td { padding: 16px; font-size: 0.875rem; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #F8FAFC; }
+
+        .cell-main { font-weight: 600; color: var(--text-main); display: block; margin-bottom: 2px; }
+        .cell-sub { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Badges */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-transform: capitalize; }
+        .badge.draft { background: #F1F5F9; color: #64748B; }
+        .badge.running, .badge.sending { background: #EFF6FF; color: #3B82F6; }
+        .badge.paused, .badge.pending { background: #FEF3C7; color: #D97706; }
+        .badge.completed, .badge.sent { background: #ECFDF5; color: #10B981; }
+        .badge.cancelled, .badge.failed { background: #FEF2F2; color: #EF4444; }
+        .badge.skipped { background: #F3F4F6; color: #9CA3AF; }
+
+        /* Empty State */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; color: var(--text-muted); height: 100%; }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 12px; color: #CBD5E1; }
+        .empty-state h3 { color: var(--text-main); font-size: 1rem; margin-bottom: 4px; font-weight: 600; }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { min-width: 300px; padding: 16px 20px; border-radius: var(--radius-md); background: var(--surface-color); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s ease; border-left: 4px solid transparent; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast i { font-size: 1.25rem; }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+
+        /* Mobile Nav */
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 500; padding: 8px 16px; justify-content: space-between; align-items: center; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; }
+        .mobile-nav-item.active { color: var(--accent-color); }
+        .mobile-nav-item i { font-size: 1.5rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .mobile-nav { display: flex; }
+            .main-workspace { padding-bottom: 60px; }
+            .header { padding: 0 16px; height: auto; flex-direction: column; align-items: flex-start; gap: 12px; padding-top: 16px; padding-bottom: 16px; }
+            .header-actions { width: 100%; justify-content: space-between; }
+            .content-area { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="ph-fill ph-paper-plane-tilt"></i>
+            Outreach
+        </div>
+        <nav class="nav-links">
+            <a onclick="goTo('index.html')" class="nav-item"><i class="ph ph-squares-four"></i> Dashboard</a>
+            <a onclick="goTo('contacts.html')" class="nav-item"><i class="ph ph-users"></i> Contacts</a>
+            <a onclick="goTo('templates.html')" class="nav-item"><i class="ph ph-file-text"></i> Templates</a>
+            <a onclick="goTo('campaigns.html')" class="nav-item"><i class="ph ph-megaphone"></i> Campaigns</a>
+            <a onclick="goTo('emailcreator.html')" class="nav-item"><i class="ph ph-pencil-simple"></i> Compose</a>
+            <a onclick="goTo('viewmails.html')" class="nav-item"><i class="ph ph-tray"></i> Inbox</a>
+            <a onclick="goTo('analytics.html')" class="nav-item active"><i class="ph ph-chart-line-up"></i> Analytics</a>
+            <a onclick="goTo('settings.html')" class="nav-item" style="margin-top: auto;"><i class="ph ph-gear"></i> Settings</a>
+        </nav>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="main-workspace">
+        
+        <header class="header">
+            <div>
+                <div class="header-title">Analytics</div>
+                <div class="header-subtitle">Track your outreach performance and campaign results.</div>
+            </div>
+            <div class="header-actions">
+                <select class="form-control" id="dateRangeFilter" style="width: 160px; background: #F8FAFC;" onchange="applyDateFilter()">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="year">This Year</option>
+                    <option value="all">All Time</option>
+                </select>
+                <button class="btn btn-outline" id="btnRefresh" onclick="refreshAnalytics()"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="max-w-screen">
+                
+                <!-- KPI Grid -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-header"><span>Emails Sent</span><i class="ph ph-paper-plane-right" style="color: var(--info);"></i></div>
+                        <div class="kpi-value" id="kpiSent"><div class="skeleton" style="width: 60px; height: 32px;"></div></div>
+                        <div class="kpi-trend neutral" id="trendSent">Across selected period</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header"><span>Emails Failed</span><i class="ph ph-warning-circle" style="color: var(--danger);"></i></div>
+                        <div class="kpi-value" id="kpiFailed"><div class="skeleton" style="width: 40px; height: 32px;"></div></div>
+                        <div class="kpi-trend neutral" id="trendFailed">Delivery issues</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header"><span>Recipients Reached</span><i class="ph ph-users" style="color: var(--text-muted);"></i></div>
+                        <div class="kpi-value" id="kpiRecipients"><div class="skeleton" style="width: 70px; height: 32px;"></div></div>
+                        <div class="kpi-trend neutral">Total unique contacts</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header"><span>Replies Received</span><i class="ph ph-chat-circle-text" style="color: var(--success);"></i></div>
+                        <div class="kpi-value" id="kpiReplies"><div class="skeleton" style="width: 40px; height: 32px;"></div></div>
+                        <div class="kpi-trend neutral" id="trendReplies">Response count</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header"><span>Active Campaigns</span><i class="ph ph-megaphone" style="color: var(--accent-color);"></i></div>
+                        <div class="kpi-value" id="kpiActiveCamps"><div class="skeleton" style="width: 30px; height: 32px;"></div></div>
+                        <div class="kpi-trend neutral">Currently running</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header"><span>Success Rate</span><i class="ph ph-target" style="color: var(--info);"></i></div>
+                        <div class="kpi-value" id="kpiSuccess"><div class="skeleton" style="width: 80px; height: 32px;"></div></div>
+                        <div class="kpi-trend neutral">Sent vs Failed ratio</div>
+                    </div>
+                </div>
+
+                <!-- Main Charts Row -->
+                <div class="chart-row">
+                    <div class="panel">
+                        <div class="panel-title">Email Activity</div>
+                        <div class="chart-container" id="activityChartContainer">
+                            <div class="skeleton" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-title">Outcome Distribution</div>
+                        <div class="chart-container" id="outcomeChartContainer">
+                            <div class="skeleton" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Chart & Performance -->
+                <div class="chart-row">
+                    <div class="panel">
+                        <div class="panel-title">Top Campaigns (By Sent)</div>
+                        <div class="chart-container" id="campaignChartContainer">
+                            <div class="skeleton" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-title">Contact Email Health</div>
+                        <div style="display: flex; flex-direction: column; gap: 16px; justify-content: center; height: 100%;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 8px;">
+                                <div>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Valid / Working</span>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="healthWorking">...</div>
+                                </div>
+                                <i class="ph ph-check-circle" style="font-size: 2rem; color: var(--success); opacity: 0.2;"></i>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 8px;">
+                                <div>
+                                    <span style="font-size: 0.75rem; color: var(--danger); text-transform: uppercase; font-weight: 600;">Invalid / Failed</span>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="healthFailed">...</div>
+                                </div>
+                                <i class="ph ph-x-circle" style="font-size: 2rem; color: var(--danger); opacity: 0.2;"></i>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 8px;">
+                                Based on database contacts.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tables Row -->
+                <div class="panel">
+                    <div class="panel-title">Campaign Performance</div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Campaign</th>
+                                    <th>Status</th>
+                                    <th>Recipients</th>
+                                    <th>Sent</th>
+                                    <th>Failed</th>
+                                    <th>Replies</th>
+                                    <th>Success Rate</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaignPerformanceTable">
+                                <tr><td colspan="8" style="text-align: center; padding: 24px;"><i class="ph ph-spinner spinner" style="font-size: 1.5rem;"></i></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">Recent Email Logs (Outreach)</div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Recipient</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentActivityTable">
+                                <tr><td colspan="4" style="text-align: center; padding: 24px;"><i class="ph ph-spinner spinner" style="font-size: 1.5rem;"></i></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a onclick="goTo('index.html')" class="mobile-nav-item"><i class="ph ph-squares-four"></i><span>Home</span></a>
+        <a onclick="goTo('contacts.html')" class="mobile-nav-item"><i class="ph ph-users"></i><span>Contacts</span></a>
+        <a onclick="goTo('campaigns.html')" class="mobile-nav-item"><i class="ph ph-megaphone"></i><span>Campaigns</span></a>
+        <a onclick="goTo('viewmails.html')" class="mobile-nav-item"><i class="ph ph-tray"></i><span>Inbox</span></a>
+        <a onclick="goTo('analytics.html')" class="mobile-nav-item active"><i class="ph ph-chart-line-up"></i><span>Analytics</span></a>
+    </nav>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = "https://ewclfynaxnufbjazkame.supabase.co".trim();
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I".trim();
+
+        let supabaseClient;
+        let currentUser = null;
+        
+        // Data Stores
+        let allCampaigns = [];
+        let allRecipients = [];
+        let allLogs = [];
+        let allContacts = [];
+        
+        // Chart Instances
+        window.myCharts = {};
+
+        // Chart Styling Globals
+        const chartColors = {
+            sent: '#3B82F6',
+            failed: '#EF4444',
+            replies: '#10B981',
+            pending: '#F59E0B',
+            skipped: '#9CA3AF'
+        };
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        function goTo(page) { window.location.href = page; }
+
+        async function init() {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                const { data: { user }, error: authErr } = await supabaseClient.auth.getUser();
+                if (authErr || !user) {
+                    const savedUser = localStorage.getItem('outreach_current_user');
+                    if (savedUser) {
+                        currentUser = JSON.parse(savedUser);
+                    } else {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                } else {
+                    currentUser = user;
+                }
+
+                Chart.defaults.font.family = "'Inter', sans-serif";
+                Chart.defaults.color = '#64748B';
+
+                await loadAnalyticsData();
+            } catch (err) {
+                console.error("Initialization failed:", err);
+                showToast("Failed to initialize analytics", "error");
+            }
+        }
+
+        function getStartDate(rangeValue) {
+            const date = new Date();
+            if (rangeValue === 'all') return new Date('2000-01-01');
+            if (rangeValue === 'year') {
+                date.setMonth(0, 1);
+                date.setHours(0, 0, 0, 0);
+                return date;
+            }
+            const days = parseInt(rangeValue, 10) || 30;
+            date.setDate(date.getDate() - days);
+            return date;
+        }
+
+        async function applyDateFilter() {
+            await refreshAnalytics();
+        }
+
+        async function refreshAnalytics() {
+            const btn = document.getElementById('btnRefresh');
+            btn.innerHTML = '<i class="ph ph-spinner spinner"></i> Refreshing...';
+            btn.disabled = true;
+            
+            showLoadingStates();
+            await loadAnalyticsData();
+            
+            btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Refresh';
+            btn.disabled = false;
+            showToast("Analytics updated", "success");
+        }
+
+        function showLoadingStates() {
+            const kpiEls = ['kpiSent', 'kpiFailed', 'kpiRecipients', 'kpiReplies', 'kpiActiveCamps', 'kpiSuccess'];
+            kpiEls.forEach(id => {
+                document.getElementById(id).innerHTML = '<div class="skeleton" style="width: 60px; height: 32px;"></div>';
+            });
+            document.getElementById('activityChartContainer').innerHTML = '<div class="skeleton" style="width: 100%; height: 100%; border-radius: 8px;"></div>';
+            document.getElementById('outcomeChartContainer').innerHTML = '<div class="skeleton" style="width: 100%; height: 100%; border-radius: 8px;"></div>';
+            document.getElementById('campaignChartContainer').innerHTML = '<div class="skeleton" style="width: 100%; height: 100%; border-radius: 8px;"></div>';
+        }
+
+        async function loadAnalyticsData() {
+            try {
+                const startDate = getStartDate(document.getElementById('dateRangeFilter').value);
+                const isoStart = startDate.toISOString();
+
+                // 1. Load Campaigns
+                const { data: camps } = await supabaseClient
+                    .from('campaigns')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                allCampaigns = camps || [];
+                const campIds = allCampaigns.map(c => c.id);
+
+                // 2. Load Campaign Recipients (filtered by date)
+                if (campIds.length > 0) {
+                    const { data: recs } = await supabaseClient
+                        .from('campaign_recipients')
+                        .select('*')
+                        .in('campaign_id', campIds)
+                        .gte('created_at', isoStart);
+                    allRecipients = recs || [];
+                } else {
+                    allRecipients = [];
+                }
+
+                // 3. Load Email Logs
+                const { data: logs } = await supabaseClient
+                    .from('email_logs')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .gte('created_at', isoStart)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                allLogs = logs || [];
+
+                // 4. Load Contacts Health
+                const { data: contacts } = await supabaseClient
+                    .from('contacts')
+                    .select('id, is_email_working')
+                    .eq('user_id', currentUser.id);
+                allContacts = contacts || [];
+
+                // Process & Render
+                calculateKPIs();
+                renderActivityChart();
+                renderOutcomeChart();
+                renderCampaignChart();
+                renderCampaignTable();
+                renderRecentActivity();
+                calculateEmailHealth();
+
+            } catch (err) {
+                console.error("Analytics error:", err);
+                showToast("Unable to load analytics data", "error");
+            }
+        }
+
+        // ==========================================
+        // CALCULATIONS & RENDERING
+        // ==========================================
+
+        function calculateKPIs() {
+            let sent = 0;
+            let failed = 0;
+            let replies = 0;
+            let recipientsSet = new Set();
+
+            allRecipients.forEach(r => {
+                if (r.status === 'sent') sent++;
+                if (r.status === 'failed') failed++;
+                if (r.replied === true) replies++;
+                if (r.contact_id) recipientsSet.add(r.contact_id);
+            });
+
+            // If a user has no campaign recipients but has legacy email_logs, sum them too for total
+            if (sent === 0 && failed === 0) {
+                allLogs.forEach(l => {
+                    if (l.status === 'sent') sent++;
+                    if (l.status === 'failed') failed++;
+                    if (l.contact_id) recipientsSet.add(l.contact_id);
+                });
+            }
+
+            const activeCamps = allCampaigns.filter(c => c.status === 'running').length;
+            
+            let successRate = '—';
+            if (sent + failed > 0) {
+                successRate = Math.round((sent / (sent + failed)) * 100) + '%';
+            }
+
+            document.getElementById('kpiSent').textContent = formatNumber(sent);
+            document.getElementById('kpiFailed').textContent = formatNumber(failed);
+            document.getElementById('kpiRecipients').textContent = formatNumber(recipientsSet.size);
+            document.getElementById('kpiReplies').textContent = formatNumber(replies);
+            document.getElementById('kpiActiveCamps').textContent = formatNumber(activeCamps);
+            document.getElementById('kpiSuccess').textContent = successRate;
+        }
+
+        function calculateEmailHealth() {
+            let working = 0;
+            let failed = 0;
+            allContacts.forEach(c => {
+                if (c.is_email_working === true) working++;
+                if (c.is_email_working === false) failed++;
+            });
+            document.getElementById('healthWorking').textContent = formatNumber(working);
+            document.getElementById('healthFailed').textContent = formatNumber(failed);
+        }
+
+        // ==========================================
+        // CHARTS
+        // ==========================================
+        function destroyChart(id) {
+            if (window.myCharts[id]) {
+                window.myCharts[id].destroy();
+            }
+        }
+
+        function renderActivityChart() {
+            const container = document.getElementById('activityChartContainer');
+            if (allRecipients.length === 0 && allLogs.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="padding:0;"><h3>No activity data</h3></div>`;
+                return;
+            }
+            container.innerHTML = '<canvas id="activityChart"></canvas>';
+
+            // Group by Date
+            const dateMap = {};
+            const processRecord = (rec, dateField) => {
+                if (!rec[dateField]) return;
+                const d = new Date(rec[dateField]).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+                if (!dateMap[d]) dateMap[d] = { sent: 0, failed: 0, replies: 0 };
+                
+                if (rec.status === 'sent') dateMap[d].sent++;
+                if (rec.status === 'failed') dateMap[d].failed++;
+                if (rec.replied) dateMap[d].replies++;
+            };
+
+            allRecipients.forEach(r => processRecord(r, r.sent_at ? 'sent_at' : 'created_at'));
+            if (Object.keys(dateMap).length === 0) {
+                allLogs.forEach(l => processRecord(l, 'created_at'));
+            }
+
+            const labels = Object.keys(dateMap).sort((a,b) => new Date(a) - new Date(b));
+            const sentData = labels.map(l => dateMap[l].sent);
+            const failedData = labels.map(l => dateMap[l].failed);
+            const repliesData = labels.map(l => dateMap[l].replies);
+
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            destroyChart('activityChart');
+            
+            window.myCharts['activityChart'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Sent', data: sentData, borderColor: chartColors.sent, backgroundColor: chartColors.sent, tension: 0.3, fill: false },
+                        { label: 'Replies', data: repliesData, borderColor: chartColors.replies, backgroundColor: chartColors.replies, tension: 0.3, fill: false },
+                        { label: 'Failed', data: failedData, borderColor: chartColors.failed, backgroundColor: chartColors.failed, tension: 0.3, fill: false }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+
+        function renderOutcomeChart() {
+            const container = document.getElementById('outcomeChartContainer');
+            if (allRecipients.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="padding:0;"><h3>No outcome data</h3></div>`;
+                return;
+            }
+            container.innerHTML = '<canvas id="outcomeChart"></canvas>';
+
+            let sent=0, failed=0, pending=0, skipped=0;
+            allRecipients.forEach(r => {
+                if (r.status === 'sent') sent++;
+                else if (r.status === 'failed') failed++;
+                else if (r.status === 'skipped') skipped++;
+                else pending++;
+            });
+
+            const ctx = document.getElementById('outcomeChart').getContext('2d');
+            destroyChart('outcomeChart');
+            
+            window.myCharts['outcomeChart'] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sent', 'Failed', 'Pending', 'Skipped'],
+                    datasets: [{
+                        data: [sent, failed, pending, skipped],
+                        backgroundColor: [chartColors.sent, chartColors.failed, chartColors.pending, chartColors.skipped],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function renderCampaignChart() {
+            const container = document.getElementById('campaignChartContainer');
+            if (allCampaigns.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="padding:0;"><h3>No campaigns yet</h3></div>`;
+                return;
+            }
+            container.innerHTML = '<canvas id="campaignChart"></canvas>';
+
+            // Calculate per campaign exact metrics from recipients array
+            const campMetrics = {};
+            allCampaigns.forEach(c => { campMetrics[c.id] = { name: c.name, sent: 0, replies: 0 }; });
+            
+            allRecipients.forEach(r => {
+                if (campMetrics[r.campaign_id]) {
+                    if (r.status === 'sent') campMetrics[r.campaign_id].sent++;
+                    if (r.replied) campMetrics[r.campaign_id].replies++;
+                }
+            });
+
+            // Sort by Sent descending, take top 10
+            const sortedCamps = Object.values(campMetrics).sort((a,b) => b.sent - a.sent).slice(0, 10);
+            
+            const labels = sortedCamps.map(c => c.name.length > 20 ? c.name.substring(0,20)+'...' : c.name);
+            const sentData = sortedCamps.map(c => c.sent);
+            const replyData = sortedCamps.map(c => c.replies);
+
+            const ctx = document.getElementById('campaignChart').getContext('2d');
+            destroyChart('campaignChart');
+            
+            window.myCharts['campaignChart'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Sent', data: sentData, backgroundColor: chartColors.sent, borderRadius: 4 },
+                        { label: 'Replies', data: replyData, backgroundColor: chartColors.replies, borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        // ==========================================
+        // TABLES
+        // ==========================================
+        function renderCampaignTable() {
+            const tbody = document.getElementById('campaignPerformanceTable');
+            if (allCampaigns.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state" style="padding:20px;"><h3>No campaigns</h3></div></td></tr>`;
+                return;
+            }
+
+            // Aggregate metrics from recipients for accuracy
+            const agg = {};
+            allCampaigns.forEach(c => { agg[c.id] = { sent: 0, failed: 0, replies: 0 }; });
+            allRecipients.forEach(r => {
+                if(agg[r.campaign_id]) {
+                    if (r.status === 'sent') agg[r.campaign_id].sent++;
+                    if (r.status === 'failed') agg[r.campaign_id].failed++;
+                    if (r.replied) agg[r.campaign_id].replies++;
+                }
+            });
+
+            const html = allCampaigns.map(c => {
+                const metrics = agg[c.id];
+                const total = c.total_recipients || 1;
+                const sr = metrics.sent + metrics.failed > 0 ? Math.round((metrics.sent / (metrics.sent + metrics.failed)) * 100) + '%' : '—';
+                const badgeClass = formatStatus(c.status);
+
+                return `
+                    <tr>
+                        <td><span class="cell-main">${escapeHtml(c.name)}</span></td>
+                        <td><span class="badge ${badgeClass}">${escapeHtml(c.status)}</span></td>
+                        <td>${c.total_recipients || 0}</td>
+                        <td><strong style="color:var(--text-main);">${metrics.sent}</strong></td>
+                        <td><span style="color:var(--danger);">${metrics.failed}</span></td>
+                        <td><span style="color:var(--info); font-weight:600;">${metrics.replies}</span></td>
+                        <td>${sr}</td>
+                        <td><button class="btn btn-outline btn-sm" onclick="goTo('campaigns.html?id=${c.id}')">View</button></td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.innerHTML = html;
+        }
+
+        function renderRecentActivity() {
+            const tbody = document.getElementById('recentActivityTable');
+            
+            // If no legacy logs exist, we can fallback to mapping the most recent campaign_recipients
+            let displayList = allLogs;
+            if (displayList.length === 0 && allRecipients.length > 0) {
+                // Map recipients into log-like format for recent activity
+                displayList = allRecipients
+                    .filter(r => r.status === 'sent' || r.status === 'failed')
+                    .sort((a,b) => new Date(b.sent_at || b.created_at) - new Date(a.sent_at || a.created_at))
+                    .slice(0, 15)
+                    .map(r => ({
+                        recipient_email: r.email,
+                        subject: "Campaign Email",
+                        status: r.status,
+                        created_at: r.sent_at || r.created_at
+                    }));
+            }
+
+            if (displayList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state" style="padding:20px;"><h3>No recent activity</h3></div></td></tr>`;
+                return;
+            }
+
+            const html = displayList.map(log => {
+                const dateStr = new Date(log.created_at).toLocaleString(undefined, {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+                const badgeClass = log.status === 'sent' ? 'success' : (log.status === 'failed' ? 'danger' : 'neutral');
+                
+                return `
+                    <tr>
+                        <td><span class="cell-main">${escapeHtml(log.recipient_email || 'Unknown')}</span></td>
+                        <td><span class="cell-sub">${escapeHtml(log.subject || 'Outreach Email')}</span></td>
+                        <td><span class="badge" style="background:var(--bg-color); color:var(--${badgeClass}); border:1px solid currentColor;">${escapeHtml(log.status)}</span></td>
+                        <td><span class="cell-sub">${dateStr}</span></td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.innerHTML = html;
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function formatNumber(num) {
+            return (num || 0).toLocaleString();
+        }
+
+        function formatStatus(status) {
+            const s = (status || '').toLowerCase();
+            if (['draft', 'pending'].includes(s)) return 'draft';
+            if (['running', 'sending'].includes(s)) return 'running';
+            if (s === 'paused') return 'paused';
+            if (['completed', 'sent'].includes(s)) return 'completed';
+            if (['cancelled', 'failed'].includes(s)) return 'cancelled';
+            return 'draft';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'check-circle' : 'warning-circle';
+
+            toast.innerHTML = `
+                <i class="ph ph-${icon}"></i>
+                <div class="toast-content">
+                    <h5>${type.charAt(0).toUpperCase() + type.slice(1)}</h5>
+                    <p>${escapeHtml(message)}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

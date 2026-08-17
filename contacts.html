@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacts - Email Outreach Manager</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            /* Colors */
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --primary-color: #0F172A;
+            --primary-hover: #1E293B;
+            --accent-color: #4F46E5;
+            --accent-hover: #4338CA;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --sidebar-width: 260px;
+            
+            /* Shadows & Effects */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            display: flex;
+        }
+
+        /* Utilities */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-outline { background: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover { background: var(--bg-color); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #DC2626; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            border-radius: 4px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface-color);
+            height: 100vh;
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            z-index: 50;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; margin-bottom: 40px; padding: 0 12px; color: var(--primary-color); }
+        .logo i { color: var(--accent-color); font-size: 1.5rem; }
+        .nav-links { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: var(--transition); cursor: pointer; }
+        .nav-item:hover { background: var(--bg-color); color: var(--text-main); }
+        .nav-item.active { background: #EEF2FF; color: var(--accent-color); }
+        .nav-item i { font-size: 1.25rem; }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            height: 80px;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        .header-title h1 { font-size: 1.25rem; font-weight: 600; color: var(--text-main); }
+        .header-title p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        .header-actions { display: flex; align-items: center; gap: 16px; }
+
+        /* User Profile Dropdown */
+        .user-profile { position: relative; }
+        .user-info { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: var(--transition); border: 1px solid transparent; }
+        .user-info:hover { background: var(--bg-color); border-color: var(--border-color); }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-color), #818CF8); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; }
+        .user-details { display: flex; flex-direction: column; }
+        .user-details h4 { font-size: 0.875rem; color: var(--text-main); }
+        .user-details p { font-size: 0.7rem; color: var(--text-muted); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 12px; width: 260px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); display: none; flex-direction: column; overflow: hidden; z-index: 100; max-height: 400px; overflow-y: auto; }
+        .user-dropdown.show { display: flex; }
+        .dropdown-header { padding: 16px; background: var(--bg-color); border-bottom: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); position: sticky; top: 0; z-index: 2; }
+        .dropdown-header strong { display: block; color: var(--text-main); font-size: 0.875rem; margin-top: 4px; word-break: break-all; }
+        .dropdown-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; font-size: 0.875rem; color: var(--text-main); transition: var(--transition); cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
+        .dropdown-item:hover { background: var(--bg-color); color: var(--accent-color); }
+        .dropdown-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+        /* Page Content */
+        .page-content { padding: 32px 40px; flex: 1; display: flex; flex-direction: column; }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-sm); }
+        .stat-title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-main); }
+
+        /* Controls (Search & Filters) */
+        .controls-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-box { position: relative; flex: 1; min-width: 250px; max-width: 400px; }
+        .search-box i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-box input { width: 100%; padding: 12px 16px 12px 44px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; outline: none; transition: var(--transition); background: var(--surface-color); }
+        .search-box input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .filters { display: flex; gap: 12px; flex-wrap: wrap; }
+        .filter-select { padding: 10px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; background: var(--surface-color); color: var(--text-main); outline: none; cursor: pointer; }
+        .filter-select:focus { border-color: var(--accent-color); }
+
+        /* Bulk Actions Bar */
+        .bulk-actions { background: var(--primary-color); color: white; padding: 12px 24px; border-radius: var(--radius-md); display: none; align-items: center; justify-content: space-between; margin-bottom: 20px; box-shadow: var(--shadow-md); animation: slideDown 0.2s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .bulk-actions-left { display: flex; align-items: center; gap: 16px; font-size: 0.875rem; font-weight: 500; }
+        .bulk-actions-right { display: flex; gap: 12px; }
+        .btn-bulk { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .btn-bulk:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* Table Container */
+        .table-container { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow-x: auto; flex: 1; display: flex; flex-direction: column; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; transition: var(--transition); background: var(--bg-color); position: sticky; top: 0; z-index: 10; }
+        th:hover { color: var(--text-main); }
+        th.sortable i { margin-left: 4px; opacity: 0.5; }
+        th.sort-asc i, th.sort-desc i { opacity: 1; color: var(--accent-color); }
+        td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; color: var(--text-main); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg-color); }
+        
+        /* Checkbox styling */
+        .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-color); }
+        
+        /* Status Badges */
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .status-working { background: #ECFDF5; color: var(--success); }
+        .status-invalid { background: #FEF2F2; color: var(--danger); }
+        .status-unknown { background: #F1F5F9; color: var(--text-muted); }
+
+        .contact-name-cell { display: flex; align-items: center; gap: 12px; font-weight: 500; cursor: pointer; color: var(--text-main); }
+        .contact-name-cell:hover { color: var(--accent-color); }
+        .contact-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--text-muted); font-size: 0.75rem; }
+
+        .action-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; transition: var(--transition); font-size: 1.1rem; }
+        .action-btn:hover { background: var(--border-color); color: var(--text-main); }
+
+        /* Pagination */
+        .pagination { padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: var(--text-muted); background: var(--surface-color); border-radius: 0 0 var(--radius-md) var(--radius-md); }
+        .pagination-controls { display: flex; gap: 8px; }
+        .page-btn { padding: 6px 12px; border: 1px solid var(--border-color); background: var(--surface-color); border-radius: 6px; cursor: pointer; transition: var(--transition); }
+        .page-btn:hover:not(:disabled) { background: var(--bg-color); }
+        .page-btn.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Modals & Overlays */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal { background: var(--surface-color); width: 100%; max-width: 500px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); transform: scale(0.95); transition: transform 0.2s ease; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-overlay.show .modal { transform: scale(1); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--text-main); }
+        .close-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+        .close-btn:hover { color: var(--text-main); }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; color: var(--text-main); }
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.875rem; outline: none; transition: var(--transition); }
+        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .form-error { color: var(--danger); font-size: 0.75rem; margin-top: 6px; display: none; }
+
+        /* Drawer (Contact Details) */
+        .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 90; display: none; opacity: 0; transition: opacity 0.3s; }
+        .drawer-overlay.show { display: block; opacity: 1; }
+        .drawer { position: fixed; top: 0; right: -400px; width: 400px; max-width: 100%; height: 100vh; background: var(--surface-color); z-index: 100; box-shadow: -4px 0 15px rgba(0,0,0,0.1); transition: right 0.3s ease; display: flex; flex-direction: column; }
+        .drawer.show { right: 0; }
+        .drawer-header { padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start; }
+        .drawer-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #818CF8, var(--accent-color)); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; margin-bottom: 16px; }
+        .drawer-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .detail-group { margin-bottom: 24px; }
+        .detail-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+        .detail-value { font-size: 0.875rem; color: var(--text-main); font-weight: 500; }
+        .drawer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 32px; }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 12px; }
+        .toast { min-width: 300px; padding: 16px 20px; border-radius: var(--radius-md); background: var(--surface-color); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid transparent; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
+        .toast i { font-size: 1.25rem; }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast.warning i { color: var(--warning); }
+        .toast-content h5 { font-size: 0.875rem; color: var(--text-main); margin-bottom: 2px; }
+        .toast-content p { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Empty State */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 20px; width: 100%; color: var(--text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; color: #CBD5E1; }
+        .empty-state h3 { color: var(--text-main); font-size: 1.125rem; margin-bottom: 8px; font-weight: 600; }
+        .empty-state p { font-size: 0.875rem; margin-bottom: 24px; max-width: 400px; line-height: 1.5; }
+
+        /* Full page overlay for No User */
+        .no-user-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-color); z-index: 1000; display: none; align-items: center; justify-content: center; }
+
+        /* Mobile Bottom Nav */
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 50; padding: 8px 16px; justify-content: space-between; align-items: center; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; }
+        .mobile-nav-item.active { color: var(--accent-color); }
+        .mobile-nav-item i { font-size: 1.5rem; }
+        .mobile-fab { background: var(--accent-color); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transform: translateY(-16px); box-shadow: var(--shadow-md); }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .page-content { padding: 24px; }
+            .header { padding: 0 24px; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding-bottom: 70px; }
+            .mobile-nav { display: flex; }
+            
+            .header { padding: 0 16px; height: 60px; }
+            .header-title h1 { font-size: 1.1rem; }
+            .header-actions .btn span { display: none; }
+            
+            .page-content { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            
+            /* Card-based Table for Mobile */
+            thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr { background: var(--surface-color); margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); position: relative; padding: 12px; }
+            tr:hover td { background: transparent; }
+            td { padding: 8px 0; border: none; display: flex; justify-content: space-between; align-items: center; text-align: right; }
+            td::before { content: attr(data-label); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; text-align: left; }
+            
+            td:first-child { position: absolute; top: 16px; left: 12px; z-index: 1; padding: 0; }
+            td:first-child::before { display: none; }
+            
+            td.contact-name-cell { padding-left: 32px; justify-content: flex-start; text-align: left; border-bottom: 1px solid var(--bg-color); padding-bottom: 12px; margin-bottom: 12px; font-size: 1rem; }
+            td.contact-name-cell::before { display: none; }
+            td.contact-name-cell .contact-avatar { display: none; }
+            
+            td:last-child { justify-content: flex-end; border-top: 1px solid var(--bg-color); padding-top: 12px; margin-top: 12px; }
+            td:last-child::before { display: none; }
+
+            .bulk-actions { flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
+            .bulk-actions-right { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- No User Overlay -->
+    <div class="no-user-overlay" id="noUserOverlay">
+        <div class="empty-state">
+            <i class="ph ph-users"></i>
+            <h3>Select a User</h3>
+            <p>You must select an active user to manage contacts.</p>
+            <button class="btn btn-primary" onclick="goTo('index.html')">Go to Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="ph-fill ph-paper-plane-tilt"></i>
+            Outreach
+        </div>
+        <nav class="nav-links">
+            <a onclick="goTo('index.html')" class="nav-item">
+                <i class="ph ph-squares-four"></i> Dashboard
+            </a>
+            <a onclick="goTo('contacts.html')" class="nav-item active">
+                <i class="ph ph-users"></i> Contacts
+            </a>
+            <a onclick="goTo('templates.html')" class="nav-item">
+                <i class="ph ph-file-text"></i> Templates
+            </a>
+            <a onclick="goTo('campaigns.html')" class="nav-item">
+                <i class="ph ph-megaphone"></i> Campaigns
+            </a>
+            <a onclick="goTo('viewmails.html')" class="nav-item">
+                <i class="ph ph-tray"></i> Inbox
+            </a>
+            <a onclick="goTo('analytics.html')" class="nav-item">
+                <i class="ph ph-chart-line-up"></i> Analytics
+            </a>
+            <a onclick="goTo('settings.html')" class="nav-item" style="margin-top: auto;">
+                <i class="ph ph-gear"></i> Settings
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <h1>Contacts</h1>
+                <p>Manage and organize your outreach contacts</p>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="openImportModal()">
+                    <i class="ph ph-upload-simple"></i> <span>Import</span>
+                </button>
+                <button class="btn btn-outline" onclick="exportCSV()">
+                    <i class="ph ph-download-simple"></i> <span>Export</span>
+                </button>
+                <button class="btn btn-primary" onclick="openAddContactModal()">
+                    <i class="ph ph-plus"></i> <span>Add Contact</span>
+                </button>
+
+                <!-- User Profile / Switcher -->
+                <div class="user-profile">
+                    <div class="user-info" id="profileToggle" onclick="toggleUserDropdown(event)">
+                        <div class="avatar" id="user-avatar-initial">?</div>
+                        <div class="user-details" style="display: none;" id="user-details-desktop">
+                            <h4 id="user-name">Loading...</h4>
+                            <p id="user-email">...</p>
+                        </div>
+                        <i class="ph ph-caret-down" style="color: var(--text-muted); font-size: 0.875rem;"></i>
+                    </div>
+
+                    <div class="user-dropdown" id="userDropdownMenu">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Contacts</div>
+                    <div class="stat-value" id="stat-total"><div class="skeleton" style="width:60px; height:32px;"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Working Emails</div>
+                    <div class="stat-value" id="stat-working"><div class="skeleton" style="width:60px; height:32px;"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Invalid Emails</div>
+                    <div class="stat-value" id="stat-invalid"><div class="skeleton" style="width:60px; height:32px;"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Added This Month</div>
+                    <div class="stat-value" id="stat-recent"><div class="skeleton" style="width:60px; height:32px;"></div></div>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="controls-bar">
+                <div class="search-box">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search by name, email, company..." oninput="handleSearch(event)">
+                </div>
+                <div class="filters">
+                    <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+                        <option value="all">Status: All</option>
+                        <option value="working">Working</option>
+                        <option value="invalid">Not Working</option>
+                        <option value="unknown">Not Checked</option>
+                    </select>
+                    <select class="filter-select" id="filterDate" onchange="applyFilters()">
+                        <option value="all">Date: All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                    <button class="btn btn-outline" onclick="clearFilters()"><i class="ph ph-x"></i> Clear</button>
+                </div>
+            </div>
+
+            <!-- Bulk Actions -->
+            <div class="bulk-actions" id="bulkActionsBar">
+                <div class="bulk-actions-left">
+                    <span id="bulkCount">0 selected</span>
+                    <button class="btn btn-sm btn-bulk" onclick="clearSelection()">Clear Selection</button>
+                </div>
+                <div class="bulk-actions-right">
+                    <button class="btn btn-sm btn-bulk" onclick="bulkUpdateStatus(true)"><i class="ph ph-check-circle"></i> Mark Working</button>
+                    <button class="btn btn-sm btn-bulk" onclick="bulkUpdateStatus(false)"><i class="ph ph-x-circle"></i> Mark Not Working</button>
+                    <button class="btn btn-sm btn-bulk" onclick="bulkAddToCampaign()"><i class="ph ph-megaphone"></i> Add to Campaign</button>
+                    <div style="width: 1px; background: rgba(255,255,255,0.2); margin: 0 8px;"></div>
+                    <button class="btn btn-sm btn-danger" onclick="bulkDelete()"><i class="ph ph-trash"></i> Delete</button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table id="contactsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" class="custom-checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(event)">
+                            </th>
+                            <th class="sortable" onclick="handleSort('name')">Name <i class="ph ph-caret-up-down"></i></th>
+                            <th class="sortable" onclick="handleSort('email')">Email <i class="ph ph-caret-up-down"></i></th>
+                            <th class="sortable" onclick="handleSort('company')">Company <i class="ph ph-caret-up-down"></i></th>
+                            <th class="sortable" onclick="handleSort('location')">Location <i class="ph ph-caret-up-down"></i></th>
+                            <th>Status</th>
+                            <th class="sortable" onclick="handleSort('created_at')">Created <i class="ph ph-caret-down"></i></th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTableBody">
+                        <!-- Initial Skeletons -->
+                        <tr><td colspan="8"><div class="skeleton" style="height: 40px; width: 100%;"></div></td></tr>
+                        <tr><td colspan="8"><div class="skeleton" style="height: 40px; width: 100%;"></div></td></tr>
+                        <tr><td colspan="8"><div class="skeleton" style="height: 40px; width: 100%;"></div></td></tr>
+                    </tbody>
+                </table>
+                
+                <!-- Pagination -->
+                <div class="pagination">
+                    <div id="pageInfo">Showing -- of --</div>
+                    <div class="pagination-controls">
+                        <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)" disabled>Previous</button>
+                        <span id="pageNumbers" style="display: flex; gap: 4px;"></span>
+                        <button class="page-btn" id="nextPageBtn" onclick="changePage(1)" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a onclick="goTo('index.html')" class="mobile-nav-item">
+            <i class="ph ph-squares-four"></i>
+            <span>Home</span>
+        </a>
+        <a onclick="goTo('contacts.html')" class="mobile-nav-item active">
+            <i class="ph-fill ph-users"></i>
+            <span>Contacts</span>
+        </a>
+        <a onclick="goTo('emailcreator.html')" class="mobile-nav-item">
+            <div class="mobile-fab">
+                <i class="ph ph-pencil-simple"></i>
+            </div>
+        </a>
+        <a onclick="goTo('viewmails.html')" class="mobile-nav-item">
+            <i class="ph ph-tray"></i>
+            <span>Inbox</span>
+        </a>
+        <a onclick="goTo('settings.html')" class="mobile-nav-item">
+            <i class="ph ph-gear"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
+
+    <!-- Modal: Add/Edit Contact -->
+    <div class="modal-overlay" id="contactModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Contact</h2>
+                <button class="close-btn" onclick="closeContactModal()"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="contactId">
+                
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="contactName" class="form-control" placeholder="e.g. Nitish Sharma">
+                    <div class="form-error" id="errName">Name is required</div>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="contactEmail" class="form-control" placeholder="e.g. nitish@example.com">
+                    <div class="form-error" id="errEmail">Valid email is required</div>
+                </div>
+                <div class="form-group">
+                    <label>Company</label>
+                    <input type="text" id="contactCompany" class="form-control" placeholder="e.g. ABC Technologies">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="contactLocation" class="form-control" placeholder="e.g. Pune, India">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeContactModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveContact()" id="saveContactBtn">Save Contact</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Import CSV -->
+    <div class="modal-overlay" id="importModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Import Contacts</h2>
+                <button class="close-btn" onclick="closeImportModal()"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 20px;">
+                    Upload a CSV file with headers: <strong>name, email, company, location</strong>.
+                </p>
+                <div class="form-group">
+                    <input type="file" id="csvFileInput" accept=".csv" class="form-control" onchange="handleFileSelect(event)">
+                </div>
+                <div id="importPreview" style="display: none; padding: 12px; background: var(--bg-color); border-radius: 8px; font-size: 0.875rem;">
+                    Detected <strong id="previewCount">0</strong> valid contacts.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeImportModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="processImport()" id="importBtn" disabled>Import Contacts</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer: Contact Details -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeContactDetails()"></div>
+    <div class="drawer" id="contactDrawer">
+        <div class="drawer-header">
+            <h3 style="font-size: 1.1rem; font-weight: 600;">Contact Details</h3>
+            <button class="close-btn" onclick="closeContactDetails()"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="drawer-body" id="drawerBody">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Toasts Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        /**
+         * SUPABASE CONFIGURATION
+         */
+        const SUPABASE_URL = "https://ewclfynaxnufbjazkame.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I"; // Replace dynamically or ensure it's available
+        
+        let supabaseClient;
+        let currentUser = null;
+
+        // State
+        let allContacts = []; // Cache for current page
+        let selectedContacts = new Set();
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 25;
+        let totalItems = 0;
+        let currentSort = { column: 'created_at', ascending: false };
+        let currentFilters = { status: 'all', date: 'all', search: '' };
+        let searchTimeout;
+        let fileImportData = [];
+
+        // Setup Init
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        function goTo(page) {
+            window.location.href = page;
+        }
+
+        // ==========================================
+        // INITIALIZATION & USER MANAGEMENT
+        // ==========================================
+        async function initializeApp() {
+            try {
+                if (SUPABASE_ANON_KEY === "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I") {
+                    console.warn("Please insert your Anon Key for full functionality.");
+                }
+
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Read from LocalStorage (Simulated Auth)
+                const savedUser = localStorage.getItem('outreach_current_user');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                }
+
+                await renderUserDropdown();
+
+                if (!currentUser) {
+                    document.getElementById('noUserOverlay').style.display = 'flex';
+                    document.getElementById('mainContent').style.display = 'none';
+                    return;
+                }
+
+                // Initialize for user
+                renderUserProfile();
+                
+                // Fetch data
+                await loadContactStats();
+                await loadContacts();
+
+                // Setup Realtime
+                setupRealtime();
+
+                // Window Resize check for UI tweaks
+                if (window.innerWidth > 768) {
+                    document.getElementById('user-details-desktop').style.display = 'flex';
+                }
+
+            } catch (err) {
+                showToast('Unable to initialize dashboard', 'error');
+                console.error(err);
+            }
+        }
+
+        async function renderUserDropdown() {
+            const dropdown = document.getElementById('userDropdownMenu');
+            try {
+                const { data: usersList, error } = await supabaseClient.from('users').select('id, name, email');
+                if (error) throw error;
+                
+                let html = `<div class="dropdown-header">Switch User</div>`;
+                
+                if (usersList) {
+                    usersList.forEach(user => {
+                        const isSelected = currentUser && String(currentUser.id) === String(user.id);
+                        const displayName = user.name || user.email;
+                        html += `
+                            <button type="button" class="dropdown-item user-select-item" data-user-id="${user.id}" style="${isSelected ? 'background: var(--bg-color); color: var(--accent-color);' : ''}">
+                                <div class="avatar" style="width: 24px; height: 24px; font-size: 0.7rem; pointer-events: none;">${displayName.charAt(0).toUpperCase()}</div>
+                                <div style="display:flex; flex-direction:column; pointer-events: none;">
+                                    <span>${escapeHTML(displayName)}</span>
+                                    <span style="font-size: 0.7rem; color: var(--text-muted);">${escapeHTML(user.email)}</span>
+                                </div>
+                            </button>
+                        `;
+                    });
+                }
+                
+                html += `
+                    <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item" style="color:var(--danger);" onclick="signOutUser()">
+                        <i class="ph ph-sign-out"></i> Log Out
+                    </button>
+                `;
+                
+                dropdown.innerHTML = html;
+
+                document.querySelectorAll('.user-select-item').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const userId = btn.dataset.userId;
+                        const user = usersList.find(u => String(u.id) === String(userId));
+                        if(user) selectUser(user);
+                    });
+                });
+            } catch (err) {
+                console.error("Dropdown error:", err);
+            }
+        }
+
+        function toggleUserDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('userDropdownMenu').classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('userDropdownMenu');
+            const profileToggle = document.getElementById('profileToggle');
+            if (dropdown && dropdown.classList.contains('show') && !dropdown.contains(e.target) && !profileToggle.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function selectUser(userObj) {
+            localStorage.setItem('outreach_current_user', JSON.stringify({ id: userObj.id, name: userObj.name || '', email: userObj.email || '' }));
+            window.location.reload();
+        }
+
+        function signOutUser() {
+            localStorage.removeItem('outreach_current_user');
+            window.location.reload();
+        }
+
+        function renderUserProfile() {
+            const nameEl = document.getElementById('user-name');
+            const emailEl = document.getElementById('user-email');
+            const initialEl = document.getElementById('user-avatar-initial');
+            
+            const displayName = currentUser.name || currentUser.email.split('@')[0];
+            
+            emailEl.textContent = currentUser.email;
+            nameEl.textContent = displayName;
+            initialEl.textContent = displayName.charAt(0).toUpperCase();
+        }
+
+        // ==========================================
+        // DATA LOADING & STATS
+        // ==========================================
+        async function loadContactStats() {
+            try {
+                // Total
+                const { count: total } = await supabaseClient.from('contacts')
+                    .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
+                
+                // Working
+                const { count: working } = await supabaseClient.from('contacts')
+                    .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).eq('is_email_working', true);
+                
+                // Invalid
+                const { count: invalid } = await supabaseClient.from('contacts')
+                    .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).eq('is_email_working', false);
+                
+                // Added this month
+                const date = new Date();
+                const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+                const { count: recent } = await supabaseClient.from('contacts')
+                    .select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).gte('created_at', firstDay);
+
+                document.getElementById('stat-total').textContent = total || 0;
+                document.getElementById('stat-working').textContent = working || 0;
+                document.getElementById('stat-invalid').textContent = invalid || 0;
+                document.getElementById('stat-recent').textContent = recent || 0;
+
+            } catch (err) {
+                console.error("Stats Error:", err);
+            }
+        }
+
+        async function loadContacts() {
+            try {
+                const tbody = document.getElementById('contactsTableBody');
+                
+                let query = supabaseClient.from('contacts').select('*', { count: 'exact' }).eq('user_id', currentUser.id);
+
+                // Apply Filters
+                if (currentFilters.search) {
+                    query = query.or(`name.ilike.%${currentFilters.search}%,email.ilike.%${currentFilters.search}%,company.ilike.%${currentFilters.search}%`);
+                }
+
+                if (currentFilters.status === 'working') query = query.eq('is_email_working', true);
+                else if (currentFilters.status === 'invalid') query = query.eq('is_email_working', false);
+                else if (currentFilters.status === 'unknown') query = query.is('is_email_working', null);
+
+                if (currentFilters.date !== 'all') {
+                    const now = new Date();
+                    let dateGte;
+                    if (currentFilters.date === 'today') {
+                        dateGte = new Date(now.setHours(0,0,0,0)).toISOString();
+                    } else if (currentFilters.date === 'week') {
+                        const firstDay = now.getDate() - now.getDay();
+                        dateGte = new Date(now.setDate(firstDay)).toISOString();
+                    } else if (currentFilters.date === 'month') {
+                        dateGte = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+                    }
+                    if(dateGte) query = query.gte('created_at', dateGte);
+                }
+
+                // Pagination
+                const from = (currentPage - 1) * ITEMS_PER_PAGE;
+                const to = from + ITEMS_PER_PAGE - 1;
+                
+                // Execute
+                const { data, count, error } = await query
+                    .order(currentSort.column, { ascending: currentSort.ascending })
+                    .range(from, to);
+
+                if (error) throw error;
+
+                allContacts = data || [];
+                totalItems = count || 0;
+
+                renderContacts();
+                renderPagination();
+                updateSortIcons();
+
+            } catch (err) {
+                console.error("Contacts Error:", err);
+                showToast("Failed to load contacts", "error");
+            }
+        }
+
+        // ==========================================
+        // RENDERING
+        // ==========================================
+        function renderContacts() {
+            const tbody = document.getElementById('contactsTableBody');
+            
+            if (allContacts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state" style="padding: 40px 20px;">
+                                <i class="ph ph-address-book"></i>
+                                <h3>No contacts found</h3>
+                                <p>Adjust your filters or add a new contact.</p>
+                                <button class="btn btn-outline" onclick="openAddContactModal()">Add Contact</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            allContacts.forEach(contact => {
+                const isChecked = selectedContacts.has(contact.id);
+                const name = contact.name || 'Unknown';
+                const created = new Date(contact.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                let statusHtml = `<span class="status status-unknown">? Unknown</span>`;
+                if (contact.is_email_working === true) statusHtml = `<span class="status status-working">✓ Working</span>`;
+                else if (contact.is_email_working === false) statusHtml = `<span class="status status-invalid">✕ Invalid</span>`;
+
+                html += `
+                    <tr class="${isChecked ? 'selected' : ''}">
+                        <td data-label="Select">
+                            <input type="checkbox" class="custom-checkbox row-checkbox" value="${contact.id}" ${isChecked ? 'checked' : ''} onchange="toggleContactSelection(event, '${contact.id}')">
+                        </td>
+                        <td data-label="Name" class="contact-name-cell" onclick="openContactDetails('${contact.id}')">
+                            <div class="contact-avatar">${name.charAt(0).toUpperCase()}</div>
+                            ${escapeHTML(name)}
+                        </td>
+                        <td data-label="Email">${escapeHTML(contact.email)}</td>
+                        <td data-label="Company">${escapeHTML(contact.company || '-')}</td>
+                        <td data-label="Location">${escapeHTML(contact.location || '-')}</td>
+                        <td data-label="Status">${statusHtml}</td>
+                        <td data-label="Created">${created}</td>
+                        <td data-label="Actions" style="text-align: right;">
+                            <button class="action-btn" title="Conversations" onclick="goTo('viewmails.html?contact=${contact.id}')"><i class="ph ph-tray"></i></button>
+                            <button class="action-btn" title="Edit" onclick="openEditContactModal('${contact.id}')"><i class="ph ph-pencil-simple"></i></button>
+                            <button class="action-btn" title="Email" onclick="goTo('emailcreator.html?contact=${contact.id}')"><i class="ph ph-paper-plane-tilt"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            updateSelectAllCheckbox();
+        }
+
+        function renderPagination() {
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+            const numbersContainer = document.getElementById('pageNumbers');
+            
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+            
+            const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+            const end = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+            
+            pageInfo.textContent = totalItems === 0 ? 'Showing 0 of 0' : `Showing ${start}–${end} of ${totalItems}`;
+            
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages || totalItems === 0;
+
+            let numHtml = '';
+            // Simple pagination (show few pages)
+            let startPage = Math.max(1, currentPage - 1);
+            let endPage = Math.min(totalPages, startPage + 2);
+            if (endPage - startPage < 2) startPage = Math.max(1, endPage - 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                numHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePageTo(${i})">${i}</button>`;
+            }
+            numbersContainer.innerHTML = numHtml;
+        }
+
+        // ==========================================
+        // INTERACTIONS (Sort, Filter, Search, Select)
+        // ==========================================
+        function handleSearch(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentFilters.search = e.target.value.trim();
+                currentPage = 1;
+                loadContacts();
+            }, 400);
+        }
+
+        function applyFilters() {
+            currentFilters.status = document.getElementById('filterStatus').value;
+            currentFilters.date = document.getElementById('filterDate').value;
+            currentPage = 1;
+            loadContacts();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatus').value = 'all';
+            document.getElementById('filterDate').value = 'all';
+            currentFilters = { status: 'all', date: 'all', search: '' };
+            currentPage = 1;
+            loadContacts();
+        }
+
+        function handleSort(column) {
+            if (currentSort.column === column) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = column;
+                currentSort.ascending = true;
+            }
+            loadContacts();
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                const i = th.querySelector('i');
+                if (i) i.className = 'ph ph-caret-up-down';
+            });
+
+            // Find current column header
+            const ths = Array.from(document.querySelectorAll('th.sortable'));
+            const map = { name: 1, email: 2, company: 3, location: 4, created_at: 6 };
+            const index = map[currentSort.column];
+            
+            if (index && ths.length > 0) {
+                const targetTh = document.querySelector(`table th:nth-child(${index + 1})`);
+                if (targetTh) {
+                    targetTh.classList.add(currentSort.ascending ? 'sort-asc' : 'sort-desc');
+                    const i = targetTh.querySelector('i');
+                    if (i) i.className = currentSort.ascending ? 'ph ph-caret-up' : 'ph ph-caret-down';
+                }
+            }
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            loadContacts();
+        }
+
+        function changePageTo(page) {
+            currentPage = page;
+            loadContacts();
+        }
+
+        // ==========================================
+        // BULK SELECTION
+        // ==========================================
+        function toggleSelectAll(e) {
+            const isChecked = e.target.checked;
+            if (isChecked) {
+                allContacts.forEach(c => selectedContacts.add(c.id));
+            } else {
+                allContacts.forEach(c => selectedContacts.delete(c.id));
+            }
+            renderContacts();
+            updateBulkToolbar();
+        }
+
+        function toggleContactSelection(e, id) {
+            if (e.target.checked) selectedContacts.add(id);
+            else selectedContacts.delete(id);
+            
+            // Check if row exists, toggle class manually for speed
+            const tr = e.target.closest('tr');
+            if(tr) tr.classList.toggle('selected', e.target.checked);
+
+            updateSelectAllCheckbox();
+            updateBulkToolbar();
+        }
+
+        function updateSelectAllCheckbox() {
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (allContacts.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+                return;
+            }
+            const allSelectedOnPage = allContacts.every(c => selectedContacts.has(c.id));
+            const someSelectedOnPage = allContacts.some(c => selectedContacts.has(c.id));
+            
+            selectAll.checked = allSelectedOnPage;
+            selectAll.indeterminate = !allSelectedOnPage && someSelectedOnPage;
+        }
+
+        function updateBulkToolbar() {
+            const bar = document.getElementById('bulkActionsBar');
+            const count = document.getElementById('bulkCount');
+            if (selectedContacts.size > 0) {
+                count.textContent = `${selectedContacts.size} selected`;
+                bar.style.display = 'flex';
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        function clearSelection() {
+            selectedContacts.clear();
+            renderContacts();
+            updateBulkToolbar();
+        }
+
+        // ==========================================
+        // CRUD OPERATIONS
+        // ==========================================
+        function openAddContactModal() {
+            document.getElementById('contactId').value = '';
+            document.getElementById('contactName').value = '';
+            document.getElementById('contactEmail').value = '';
+            document.getElementById('contactCompany').value = '';
+            document.getElementById('contactLocation').value = '';
+            
+            document.getElementById('errName').style.display = 'none';
+            document.getElementById('errEmail').style.display = 'none';
+            document.getElementById('modalTitle').textContent = 'Add Contact';
+            
+            document.getElementById('contactModalOverlay').classList.add('show');
+        }
+
+        function openEditContactModal(id) {
+            const contact = allContacts.find(c => c.id === id);
+            if (!contact) return;
+
+            document.getElementById('contactId').value = contact.id;
+            document.getElementById('contactName').value = contact.name || '';
+            document.getElementById('contactEmail').value = contact.email || '';
+            document.getElementById('contactCompany').value = contact.company || '';
+            document.getElementById('contactLocation').value = contact.location || '';
+            
+            document.getElementById('errName').style.display = 'none';
+            document.getElementById('errEmail').style.display = 'none';
+            document.getElementById('modalTitle').textContent = 'Edit Contact';
+            
+            closeContactDetails(); // If opened from drawer
+            document.getElementById('contactModalOverlay').classList.add('show');
+        }
+
+        function closeContactModal() {
+            document.getElementById('contactModalOverlay').classList.remove('show');
+        }
+
+        async function saveContact() {
+            const id = document.getElementById('contactId').value;
+            const name = document.getElementById('contactName').value.trim();
+            const email = document.getElementById('contactEmail').value.trim();
+            const company = document.getElementById('contactCompany').value.trim();
+            const location = document.getElementById('contactLocation').value.trim();
+
+            let valid = true;
+            if (!name) { document.getElementById('errName').style.display = 'block'; valid = false; }
+            else { document.getElementById('errName').style.display = 'none'; }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) { document.getElementById('errEmail').style.display = 'block'; valid = false; }
+            else { document.getElementById('errEmail').style.display = 'none'; }
+
+            if (!valid) return;
+
+            const btn = document.getElementById('saveContactBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Saving...';
+
+            try {
+                // Check dup email
+                if (!id) {
+                    const { data: existing } = await supabaseClient.from('contacts')
+                        .select('id').eq('user_id', currentUser.id).eq('email', email).single();
+                    if (existing) {
+                        showToast('Contact with this email already exists', 'warning');
+                        btn.disabled = false;
+                        btn.innerHTML = 'Save Contact';
+                        return;
+                    }
+                }
+
+                const payload = {
+                    user_id: currentUser.id,
+                    name,
+                    email,
+                    company: company || null,
+                    location: location || null
+                };
+
+                let error;
+                if (id) {
+                    const res = await supabaseClient.from('contacts').update(payload).eq('id', id).eq('user_id', currentUser.id);
+                    error = res.error;
+                } else {
+                    const res = await supabaseClient.from('contacts').insert([payload]);
+                    error = res.error;
+                }
+
+                if (error) throw error;
+
+                showToast(id ? 'Contact updated' : 'Contact added', 'success');
+                closeContactModal();
+                loadContacts();
+                if(!id) loadContactStats(); // only refresh stats if added
+
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to save contact', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Save Contact';
+            }
+        }
+
+        // Drawer
+        function openContactDetails(id) {
+            const contact = allContacts.find(c => c.id === id);
+            if (!contact) return;
+
+            const name = contact.name || 'Unknown';
+            const statusHtml = contact.is_email_working === true ? `<span class="status status-working">Working</span>` 
+                             : contact.is_email_working === false ? `<span class="status status-invalid">Invalid</span>` 
+                             : `<span class="status status-unknown">Not Checked</span>`;
+
+            const created = new Date(contact.created_at).toLocaleString();
+            
+            let html = `
+                <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 32px;">
+                    <div class="drawer-avatar">${name.charAt(0).toUpperCase()}</div>
+                    <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">${escapeHTML(name)}</h2>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 12px;">${escapeHTML(contact.email)}</p>
+                    ${statusHtml}
+                </div>
+
+                <div class="detail-group">
+                    <div class="detail-label">Company</div>
+                    <div class="detail-value">${escapeHTML(contact.company || '-')}</div>
+                </div>
+                <div class="detail-group">
+                    <div class="detail-label">Location</div>
+                    <div class="detail-value">${escapeHTML(contact.location || '-')}</div>
+                </div>
+                <div class="detail-group">
+                    <div class="detail-label">Added On</div>
+                    <div class="detail-value">${created}</div>
+                </div>
+
+                <div class="drawer-actions">
+                    <button class="btn btn-outline" style="justify-content: center;" onclick="openEditContactModal('${contact.id}')"><i class="ph ph-pencil-simple"></i> Edit</button>
+                    <button class="btn btn-primary" style="justify-content: center;" onclick="goTo('emailcreator.html?contact=${contact.id}')"><i class="ph ph-paper-plane-tilt"></i> Email</button>
+                </div>
+                <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-top: 12px;" onclick="goTo('viewmails.html?contact=${contact.id}')"><i class="ph ph-tray"></i> View Conversations</button>
+                <button class="btn btn-outline" style="width: 100%; justify-content: center; margin-top: 12px;" onclick="goTo('campaigns.html?contact=${contact.id}')"><i class="ph ph-megaphone"></i> Add to Campaign</button>
+            `;
+
+            document.getElementById('drawerBody').innerHTML = html;
+            document.getElementById('drawerOverlay').classList.add('show');
+            document.getElementById('contactDrawer').classList.add('show');
+        }
+
+        function closeContactDetails() {
+            document.getElementById('drawerOverlay').classList.remove('show');
+            document.getElementById('contactDrawer').classList.remove('show');
+        }
+
+        // Bulk Operations
+        async function bulkUpdateStatus(isWorking) {
+            if (!confirm(`Mark ${selectedContacts.size} contacts as ${isWorking ? 'Working' : 'Not Working'}?`)) return;
+            try {
+                const ids = Array.from(selectedContacts);
+                const { error } = await supabaseClient.from('contacts')
+                    .update({ is_email_working: isWorking })
+                    .in('id', ids)
+                    .eq('user_id', currentUser.id);
+                if(error) throw error;
+                showToast(`Updated ${selectedContacts.size} contacts`, 'success');
+                clearSelection();
+                loadContacts();
+                loadContactStats();
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to update status', 'error');
+            }
+        }
+
+        async function bulkDelete() {
+            if (!confirm(`Delete ${selectedContacts.size} contacts? All related campaign data may be affected.`)) return;
+            try {
+                const ids = Array.from(selectedContacts);
+                const { error } = await supabaseClient.from('contacts')
+                    .delete()
+                    .in('id', ids)
+                    .eq('user_id', currentUser.id);
+                if(error) throw error;
+                showToast(`Deleted ${selectedContacts.size} contacts`, 'success');
+                clearSelection();
+                loadContacts();
+                loadContactStats();
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to delete contacts', 'error');
+            }
+        }
+
+        function bulkAddToCampaign() {
+            const ids = Array.from(selectedContacts).join(',');
+            goTo(`campaigns.html?contacts=${ids}`);
+        }
+
+        // ==========================================
+        // CSV IMPORT & EXPORT
+        // ==========================================
+        function openImportModal() {
+            document.getElementById('csvFileInput').value = '';
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('importBtn').disabled = true;
+            fileImportData = [];
+            document.getElementById('importModalOverlay').classList.add('show');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModalOverlay').classList.remove('show');
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n');
+                
+                if (rows.length < 2) {
+                    showToast('CSV is empty or missing headers', 'error');
+                    return;
+                }
+
+                // Simple parser
+                const headers = rows[0].toLowerCase().split(',').map(h => h.trim());
+                const nameIdx = headers.indexOf('name');
+                const emailIdx = headers.indexOf('email');
+                const companyIdx = headers.indexOf('company');
+                const locIdx = headers.indexOf('location');
+
+                if (emailIdx === -1) {
+                    showToast('CSV must contain an "email" column', 'error');
+                    return;
+                }
+
+                fileImportData = [];
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                for (let i = 1; i < rows.length; i++) {
+                    const rowStr = rows[i].trim();
+                    if (!rowStr) continue;
+                    
+                    let cols = rowStr.split(','); 
+                    if (cols.length < headers.length) continue; // skip malformed
+
+                    const email = cols[emailIdx].trim();
+                    if (email && emailRegex.test(email)) {
+                        fileImportData.push({
+                            user_id: currentUser.id,
+                            email: email,
+                            name: nameIdx !== -1 ? (cols[nameIdx] || '').trim() : '',
+                            company: companyIdx !== -1 ? (cols[companyIdx] || '').trim() : null,
+                            location: locIdx !== -1 ? (cols[locIdx] || '').trim() : null
+                        });
+                    }
+                }
+
+                document.getElementById('previewCount').textContent = fileImportData.length;
+                document.getElementById('importPreview').style.display = 'block';
+                document.getElementById('importBtn').disabled = fileImportData.length === 0;
+            };
+            reader.readAsText(file);
+        }
+
+        async function processImport() {
+            if (fileImportData.length === 0) return;
+            const btn = document.getElementById('importBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Importing...';
+
+            try {
+                const { data: existing } = await supabaseClient.from('contacts').select('email').eq('user_id', currentUser.id);
+                const existingEmails = new Set((existing || []).map(e => e.email.toLowerCase()));
+
+                const newContacts = [];
+                let duplicates = 0;
+
+                fileImportData.forEach(c => {
+                    const e = c.email.toLowerCase();
+                    if (existingEmails.has(e)) {
+                        duplicates++;
+                    } else {
+                        newContacts.push(c);
+                        existingEmails.add(e); // prevent dups within file
+                    }
+                });
+
+                if (newContacts.length > 0) {
+                    const { error } = await supabaseClient.from('contacts').insert(newContacts);
+                    if (error) throw error;
+                }
+
+                showToast(`Imported ${newContacts.length} contacts. ${duplicates > 0 ? `Skipped ${duplicates} duplicates.` : ''}`, 'success');
+                closeImportModal();
+                loadContacts();
+                loadContactStats();
+            } catch (err) {
+                console.error(err);
+                showToast('Import failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Import Contacts';
+            }
+        }
+
+        async function exportCSV() {
+            try {
+                const { data, error } = await supabaseClient.from('contacts')
+                    .select('name,email,company,location,is_email_working,created_at')
+                    .eq('user_id', currentUser.id);
+                
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    showToast('No contacts to export', 'warning');
+                    return;
+                }
+
+                const headers = ['Name', 'Email', 'Company', 'Location', 'Email Status', 'Created At'];
+                const csvRows = [];
+                csvRows.push(headers.join(','));
+
+                data.forEach(c => {
+                    const status = c.is_email_working === true ? 'Working' : c.is_email_working === false ? 'Invalid' : 'Unknown';
+                    const row = [
+                        `"${(c.name || '').replace(/"/g, '""')}"`,
+                        `"${(c.email || '').replace(/"/g, '""')}"`,
+                        `"${(c.company || '').replace(/"/g, '""')}"`,
+                        `"${(c.location || '').replace(/"/g, '""')}"`,
+                        status,
+                        new Date(c.created_at).toISOString().split('T')[0]
+                    ];
+                    csvRows.push(row.join(','));
+                });
+
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([csvString], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'contacts_export.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast('Export complete', 'success');
+
+            } catch (err) {
+                console.error(err);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function setupRealtime() {
+            if (!currentUser) return;
+            supabaseClient.channel('contacts_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts', filter: `user_id=eq.${currentUser.id}` }, () => {
+                    loadContactStats();
+                    loadContacts();
+                })
+                .subscribe();
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'check-circle';
+            if (type === 'error') icon = 'x-circle';
+            if (type === 'warning') icon = 'warning-circle';
+
+            const title = type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Warning';
+
+            toast.innerHTML = `
+                <i class="ph ph-${icon}"></i>
+                <div class="toast-content">
+                    <h5>${title}</h5>
+                    <p>${escapeHTML(message)}</p>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>

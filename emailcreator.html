@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Creator - Email Outreach Manager</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            /* Colors */
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --primary-color: #0F172A;
+            --primary-hover: #1E293B;
+            --accent-color: #4F46E5;
+            --accent-hover: #4338CA;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --sidebar-width: 260px;
+            
+            /* Shadows & Effects */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; display: flex; height: 100vh; }
+
+        /* Skeleton Loading */
+        .skeleton { background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Buttons */
+        .btn { padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; justify-content: center; }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-outline { background: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover:not(:disabled) { background: var(--bg-color); }
+        .btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-ghost { background: transparent; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; }
+        .btn-ghost:hover { background: var(--bg-color); color: var(--text-main); }
+        .btn-danger { background: #FEF2F2; color: var(--danger); border: 1px solid #FCA5A5; }
+        .btn-danger:hover { background: #FEE2E2; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+        /* Inputs & Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 6px; color: var(--text-main); }
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; outline: none; transition: var(--transition); background: var(--surface-color); color: var(--text-main); }
+        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        select.form-control { padding-right: 32px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--surface-color); height: 100vh; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 16px; z-index: 50; flex-shrink: 0; }
+        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; margin-bottom: 40px; padding: 0 12px; color: var(--primary-color); }
+        .logo i { color: var(--accent-color); font-size: 1.5rem; }
+        .nav-links { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: var(--transition); cursor: pointer; }
+        .nav-item:hover { background: var(--bg-color); color: var(--text-main); }
+        .nav-item.active { background: #EEF2FF; color: var(--accent-color); }
+        .nav-item i { font-size: 1.25rem; }
+
+        /* Main Workspace */
+        .main-workspace { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Header */
+        .header { height: 72px; background: var(--surface-color); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; z-index: 40; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header-title { font-size: 1.125rem; font-weight: 600; }
+        
+        /* Mode Switcher */
+        .mode-switcher { display: flex; background: var(--bg-color); border-radius: 8px; padding: 4px; border: 1px solid var(--border-color); }
+        .mode-btn { padding: 6px 16px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: var(--transition); }
+        .mode-btn.active { background: var(--surface-color); color: var(--text-main); box-shadow: var(--shadow-sm); }
+
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+
+        /* User Profile */
+        .user-profile-sm { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); }
+        .avatar-sm { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-color), #818CF8); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; }
+        .user-profile-sm-info { display: flex; flex-direction: column; }
+        .user-profile-sm-info strong { font-size: 0.75rem; line-height: 1; }
+        .user-profile-sm-info span { font-size: 0.65rem; color: var(--text-muted); line-height: 1.2; }
+
+        /* Content Area (Split) */
+        .content-split { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Editor Panel */
+        .editor-panel { flex: 2; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); background: var(--surface-color); }
+        .editor-scroll-area { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+        
+        /* Recipient Box */
+        .recipient-box { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; background: var(--bg-color); transition: var(--transition); }
+        .recipient-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+        .recipient-label { width: 40px; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); padding-top: 6px; }
+        .recipient-input-area { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 36px; padding: 4px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--surface-color); }
+        .contact-chip { background: #EEF2FF; color: var(--accent-color); border: 1px solid #C7D2FE; padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+        .contact-chip button { background: none; border: none; color: var(--accent-color); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .recipient-search-input { border: none; outline: none; font-size: 0.875rem; flex: 1; min-width: 150px; background: transparent; }
+        
+        /* Subject Box */
+        .subject-input { width: 100%; font-size: 1.125rem; font-weight: 600; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); outline: none; transition: var(--transition); }
+        .subject-input:focus { border-color: var(--accent-color); }
+
+        /* Rich Text Editor */
+        .rich-editor-container { flex: 1; display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; background: var(--surface-color); min-height: 400px; }
+        .editor-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-color); background: var(--bg-color); align-items: center; }
+        
+        .toolbar-btn { background: transparent; border: none; height: 32px; padding: 0 8px; border-radius: 6px; cursor: pointer; color: var(--text-muted); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: var(--transition); position: relative; }
+        .toolbar-btn:hover { background: var(--border-color); color: var(--text-main); }
+        .toolbar-btn.active { background: #EEF2FF; color: var(--accent-color); border: 1px solid var(--accent-color); }
+        .toolbar-divider { width: 1px; background: var(--border-color); margin: 0 4px; height: 24px; }
+        
+        .editor-body { flex: 1; padding: 20px; font-size: 0.95rem; line-height: 1.6; outline: none; overflow-y: auto; color: var(--text-main); }
+        .editor-body:empty:before { content: attr(data-placeholder); color: var(--text-muted); font-style: italic; }
+        
+        /* HTML Raw Textarea */
+        .editor-html-view { flex: 1; padding: 20px; font-family: monospace; font-size: 0.875rem; line-height: 1.5; outline: none; resize: none; border: none; background: #F8FAFC; color: #334155; display: none; }
+
+        /* Right Panel (Settings / Preview) */
+        .settings-panel { flex: 1; min-width: 320px; max-width: 450px; background: var(--bg-color); display: flex; flex-direction: column; }
+        .panel-tabs { display: flex; border-bottom: 1px solid var(--border-color); background: var(--surface-color); }
+        .panel-tab { flex: 1; text-align: center; padding: 12px; font-size: 0.875rem; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: var(--transition); }
+        .panel-tab.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+        
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+        .panel-content.active { display: block; }
+
+        /* Panel Sections */
+        .section-box { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .section-header h3 { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+
+        /* Variables Grid */
+        .var-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .var-btn { padding: 8px; background: var(--bg-color); border: 1px dashed var(--border-color); border-radius: 6px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; text-align: left; transition: var(--transition); }
+        .var-btn:hover { background: #EEF2FF; border-color: var(--accent-color); color: var(--accent-color); }
+        
+        /* Attachment Items */
+        .attachment-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 8px; }
+        .att-info { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+        .att-icon { font-size: 1.5rem; color: var(--text-muted); }
+        .att-details { display: flex; flex-direction: column; overflow: hidden; }
+        .att-name { font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .att-size { font-size: 0.65rem; color: var(--text-muted); }
+        .att-remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1rem; }
+
+        /* Live Preview Styles */
+        .preview-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; }
+        .preview-contact-select { flex: 1; padding: 6px; font-size: 0.875rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--surface-color); outline: none; }
+        .preview-frame { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; height: 500px; box-shadow: var(--shadow-sm); }
+        .preview-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #F9FAFB; }
+        .preview-field { display: flex; margin-bottom: 8px; font-size: 0.875rem; }
+        .preview-label { width: 60px; color: var(--text-muted); }
+        .preview-value { font-weight: 500; color: var(--text-main); flex: 1; word-break: break-all; }
+        .preview-body { padding: 20px; font-size: 0.95rem; line-height: 1.6; overflow-y: auto; flex: 1; }
+
+        /* Modals & Overlays */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal { background: var(--surface-color); width: 100%; max-width: 600px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); transform: scale(0.95); transition: transform 0.2s ease; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal.large { max-width: 800px; }
+        .modal-overlay.show .modal { transform: scale(1); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--text-main); }
+        .close-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+        .close-btn:hover { color: var(--text-main); }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 20px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; }
+
+        /* Advanced Contact Selector */
+        .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-row .form-control { flex: 1; min-width: 120px; }
+        
+        .contact-list-modal { display: flex; flex-direction: column; gap: 8px; }
+        .contact-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: var(--transition); }
+        .contact-row:hover { background: var(--bg-color); }
+        .contact-row.selected { border-color: var(--accent-color); background: #EEF2FF; }
+
+        /* Empty States */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 12px; color: #CBD5E1; }
+        .empty-state h3 { color: var(--text-main); font-size: 1rem; margin-bottom: 4px; font-weight: 600; }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { min-width: 300px; padding: 16px 20px; border-radius: var(--radius-md); background: var(--surface-color); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid transparent; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
+        .toast i { font-size: 1.25rem; }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast-content h5 { font-size: 0.875rem; color: var(--text-main); margin-bottom: 2px; }
+        .toast-content p { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Mobile Adjustments */
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 500; padding: 8px 16px; justify-content: space-between; align-items: center; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; }
+        .mobile-nav-item.active { color: var(--accent-color); }
+        .mobile-nav-item i { font-size: 1.5rem; }
+        
+        @media (max-width: 1024px) {
+            .settings-panel { max-width: 300px; min-width: 280px; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .content-split { flex-direction: column; }
+            .settings-panel { min-width: 100%; max-width: 100%; border-top: 1px solid var(--border-color); flex: none; height: 50vh; }
+            .main-workspace { padding-bottom: 60px; }
+            .mobile-nav { display: flex; }
+            .header { padding: 0 16px; height: 60px; overflow-x: auto; }
+            .header-title { display: none; }
+            .btn span { display: none; }
+            .editor-scroll-area { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Full page overlay for No User -->
+    <div class="modal-overlay" id="noUserOverlay" style="background: var(--bg-color); z-index: 3000;">
+        <div class="empty-state">
+            <i class="ph ph-users"></i>
+            <h3>No User Selected</h3>
+            <p style="margin-bottom: 24px;">You must select an active user to compose emails.</p>
+            <button class="btn btn-primary" onclick="goTo('index.html')">Return to Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="ph-fill ph-paper-plane-tilt"></i>
+            Outreach
+        </div>
+        <nav class="nav-links">
+            <a onclick="goTo('index.html')" class="nav-item">
+                <i class="ph ph-squares-four"></i> Dashboard
+            </a>
+            <a onclick="goTo('contacts.html')" class="nav-item">
+                <i class="ph ph-users"></i> Contacts
+            </a>
+            <a onclick="goTo('templates.html')" class="nav-item">
+                <i class="ph ph-file-text"></i> Templates
+            </a>
+            <a onclick="goTo('campaigns.html')" class="nav-item">
+                <i class="ph ph-megaphone"></i> Campaigns
+            </a>
+            <a onclick="goTo('emailcreator.html')" class="nav-item active">
+                <i class="ph ph-pencil-simple"></i> Compose
+            </a>
+            <a onclick="goTo('viewmails.html')" class="nav-item">
+                <i class="ph ph-tray"></i> Inbox
+            </a>
+            <a onclick="goTo('analytics.html')" class="nav-item">
+                <i class="ph ph-chart-line-up"></i> Analytics
+            </a>
+            <a onclick="goTo('settings.html')" class="nav-item" style="margin-top: auto;">
+                <i class="ph ph-gear"></i> Settings
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="main-workspace">
+        
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="btn btn-ghost" onclick="history.back()"><i class="ph ph-arrow-left"></i></button>
+                <div class="header-title">Email Creator</div>
+                
+                <div class="mode-switcher">
+                    <button class="mode-btn active" id="modeDirectBtn" onclick="switchMode('direct')">Direct Email</button>
+                    <button class="mode-btn" id="modeTemplateBtn" onclick="switchMode('template')">Template</button>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+
+                <!-- Service selector for Direct Email mode -->
+                <select id="emailServiceSelect" class="form-control" style="width: 140px; padding: 6px 12px; font-size: 0.8rem; height: 36px; border-radius: 8px; border: 1px solid var(--accent-color);" title="Select Sender Account">
+                    <option value="">Loading senders...</option>
+                </select>
+
+                <!-- Custom Delay Selector -->
+                <div id="delayContainer" style="display: flex; gap: 4px; align-items: center;">
+                    <select id="sendDelaySelect" class="form-control" style="width: 110px; padding: 6px 12px; font-size: 0.8rem; height: 36px; border-radius: 8px; border: 1px solid var(--border-color);" onchange="toggleCustomDelay()" title="Delay Between Emails">
+                        <option value="0">No delay</option>
+                        <option value="5">5s delay</option>
+                        <option value="15">15s delay</option>
+                        <option value="30">30s delay</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                    <input type="number" id="customDelayInput" class="form-control" style="width: 70px; display: none; padding: 6px; font-size: 0.8rem; height: 36px;" placeholder="Secs" min="1">
+                </div>
+
+                <button class="btn btn-outline" id="btnSaveDraft" onclick="saveDraft()"><i class="ph ph-floppy-disk"></i> <span>Save Draft</span></button>
+                <button class="btn btn-outline" id="btnSaveTemplate" onclick="saveTemplate()" style="display: none;"><i class="ph ph-files"></i> <span>Save Template</span></button>
+                <button class="btn btn-primary" id="btnSend" onclick="confirmSendQueue()"><i class="ph ph-paper-plane-right"></i> <span>Send Email</span></button>
+                
+                <div class="user-profile-sm">
+                    <div class="avatar-sm" id="currentUserAvatar">?</div>
+                    <div class="user-profile-sm-info">
+                        <strong id="currentUserName">User</strong>
+                        <span id="currentUserEmail">email@example.com</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Split -->
+        <div class="content-split">
+            
+            <!-- Left: Editor Panel -->
+            <div class="editor-panel">
+                <div class="editor-scroll-area">
+                    
+                    <!-- Recipients (Only in Direct Mode) -->
+                    <div class="recipient-box" id="recipientSection">
+                        <div class="recipient-row">
+                            <div class="recipient-label">To</div>
+                            <div class="recipient-input-area" id="selectedContactsArea">
+                                <!-- Chips go here -->
+                                <input type="text" class="recipient-search-input" id="quickContactSearch" placeholder="Type name or email..." oninput="handleQuickSearch(event)">
+                            </div>
+                            <button class="btn btn-outline btn-sm" onclick="openAdvancedContactModal()"><i class="ph ph-users"></i> Select</button>
+                        </div>
+                        <!-- Quick Search Dropdown Result -->
+                        <div id="quickSearchResults" style="display:none; position:absolute; z-index:10; background:white; border:1px solid var(--border-color); border-radius:8px; box-shadow:var(--shadow-lg); width:300px; max-height:200px; overflow-y:auto; margin-left:52px; margin-top:-10px;"></div>
+                    </div>
+
+                    <!-- Template Name (Only in Template Mode) -->
+                    <div class="form-group" id="templateNameSection" style="display: none;">
+                        <input type="text" id="templateName" class="subject-input" placeholder="Enter template name (internal use)">
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="form-group">
+                        <input type="text" id="emailSubject" class="subject-input" placeholder="Subject" onfocus="saveCursorPosition('subject')" onkeyup="saveCursorPosition('subject')">
+                    </div>
+
+                    <!-- Editor -->
+                    <div class="rich-editor-container">
+                        <div class="editor-toolbar">
+                            <!-- Basic Formatting -->
+                            <button class="toolbar-btn" title="Bold" onclick="execCmd('bold')"><i class="ph ph-text-b"></i></button>
+                            <button class="toolbar-btn" title="Italic" onclick="execCmd('italic')"><i class="ph ph-text-italic"></i></button>
+                            <button class="toolbar-btn" title="Underline" onclick="execCmd('underline')"><i class="ph ph-text-underline"></i></button>
+                            <button class="toolbar-btn" title="Strikethrough" onclick="execCmd('strikeThrough')"><i class="ph ph-text-strikethrough"></i></button>
+                            
+                            <div class="toolbar-divider"></div>
+                            
+                            <!-- Font & Background Color -->
+                            <label class="toolbar-btn" title="Text Color" style="margin: 0; position: relative; overflow: hidden; display: flex;">
+                                <i class="ph ph-palette"></i>
+                                <input type="color" oninput="execCmdArg('foreColor', this.value)" style="position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; left: 0; top: 0;">
+                            </label>
+                            
+                            <label class="toolbar-btn" title="Highlight Text" style="margin: 0; position: relative; overflow: hidden; display: flex;">
+                                <i class="ph ph-highlighter"></i>
+                                <input type="color" oninput="execCmdArg('backColor', this.value)" style="position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; left: 0; top: 0;">
+                            </label>
+
+                            <div class="toolbar-divider"></div>
+                            
+                            <!-- Lists & Inserts -->
+                            <button class="toolbar-btn" title="Bullet List" onclick="execCmd('insertUnorderedList')"><i class="ph ph-list-bullets"></i></button>
+                            <button class="toolbar-btn" title="Numbered List" onclick="execCmd('insertOrderedList')"><i class="ph ph-list-numbers"></i></button>
+                            
+                            <div class="toolbar-divider"></div>
+                            
+                            <button class="toolbar-btn" title="Insert Link" onclick="insertLink()"><i class="ph ph-link"></i></button>
+                            <button class="toolbar-btn" title="Insert Image from Library" onclick="openAssetLibrary('image')"><i class="ph ph-image"></i></button>
+                            
+                            <div class="toolbar-divider"></div>
+                            
+                            <button class="toolbar-btn" title="Clear Formatting" onclick="execCmd('removeFormat')"><i class="ph ph-eraser"></i></button>
+
+                            <!-- HTML Toggle -->
+                            <div style="flex-grow: 1;"></div>
+                            <button class="toolbar-btn" id="btnToggleHtml" title="Toggle Raw HTML Mode" onclick="toggleHtmlMode()" style="width: auto; padding: 0 12px; gap: 6px; border: 1px solid var(--border-color);">
+                                <i class="ph ph-code"></i> <span style="font-size: 0.75rem; font-weight: 600;">Edit HTML</span>
+                            </button>
+                        </div>
+                        
+                        <div class="editor-body" id="emailBody" contenteditable="true" data-placeholder="Write your email here..." onfocus="saveCursorPosition('body')" onkeyup="saveCursorPosition('body')" onmouseup="saveCursorPosition('body')"></div>
+                        
+                        <textarea class="editor-html-view" id="emailBodyHtml" placeholder="<!-- Write raw HTML here -->"></textarea>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Settings Panel -->
+            <div class="settings-panel">
+                <div class="panel-tabs">
+                    <div class="panel-tab active" onclick="switchRightPanel('settings')">Settings</div>
+                    <div class="panel-tab" onclick="switchRightPanel('preview'); renderPreview();">Live Preview</div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="panel-content active" id="tabSettings">
+                    
+                    <!-- Variables -->
+                    <div class="section-box">
+                        <div class="section-header">
+                            <h3>Variables</h3>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Click to insert at cursor position.</p>
+                        <div class="var-grid">
+                            <button class="var-btn" onclick="insertVariable('{{name}}')">{{name}}</button>
+                            <button class="var-btn" onclick="insertVariable('{{first_name}}')">{{first_name}}</button>
+                            <button class="var-btn" onclick="insertVariable('{{last_name}}')">{{last_name}}</button>
+                            <button class="var-btn" onclick="insertVariable('{{company}}')">{{company}}</button>
+                            <button class="var-btn" onclick="insertVariable('{{location}}')">{{location}}</button>
+                        </div>
+                    </div>
+
+                    <!-- Attachments -->
+                    <div class="section-box">
+                        <div class="section-header">
+                            <h3>Attachments</h3>
+                            <button class="btn btn-ghost btn-sm" onclick="openAssetLibrary('attachment')"><i class="ph ph-plus"></i> Add</button>
+                        </div>
+                        <div id="attachmentList">
+                            <!-- Attachments populated here -->
+                            <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin: 10px 0;">No attachments added.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Preview Tab -->
+                <div class="panel-content" id="tabPreview" style="padding: 0;">
+                    <div style="padding: 16px; background: var(--surface-color); border-bottom: 1px solid var(--border-color);">
+                        <!-- Forward / Backward Navigation prominently displayed -->
+                        <div class="preview-controls">
+                            <button class="btn btn-outline btn-sm" onclick="prevPreview()" id="prevPreviewBtn" style="padding: 6px;" title="Previous Contact">
+                                <i class="ph ph-caret-left" style="font-size: 1.2rem;"></i>
+                            </button>
+                            
+                            <select class="preview-contact-select" id="previewContactSelect" onchange="renderPreview()" style="font-weight: 500; text-align: center;">
+                                <option value="sample">Placeholder Data</option>
+                            </select>
+                            
+                            <button class="btn btn-outline btn-sm" onclick="nextPreview()" id="nextPreviewBtn" style="padding: 6px;" title="Next Contact">
+                                <i class="ph ph-caret-right" style="font-size: 1.2rem;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="padding: 16px;">
+                        <div class="preview-frame">
+                            <div class="preview-header">
+                                <div class="preview-field"><div class="preview-label">From:</div><div class="preview-value" id="prevFrom">...</div></div>
+                                <div class="preview-field"><div class="preview-label">To:</div><div class="preview-value" id="prevTo">...</div></div>
+                                <div class="preview-field"><div class="preview-label">Subject:</div><div class="preview-value" id="prevSubject" style="font-weight: 600;">...</div></div>
+                            </div>
+                            <div class="preview-body" id="prevBody"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a onclick="goTo('index.html')" class="mobile-nav-item">
+            <i class="ph ph-squares-four"></i><span>Home</span>
+        </a>
+        <a onclick="goTo('contacts.html')" class="mobile-nav-item">
+            <i class="ph ph-users"></i><span>Contacts</span>
+        </a>
+        <a onclick="goTo('emailcreator.html')" class="mobile-nav-item active">
+            <div class="mobile-fab"><i class="ph ph-pencil-simple"></i></div>
+        </a>
+        <a onclick="goTo('viewmails.html')" class="mobile-nav-item">
+            <i class="ph ph-tray"></i><span>Inbox</span>
+        </a>
+        <a onclick="goTo('settings.html')" class="mobile-nav-item">
+            <i class="ph ph-gear"></i><span>Settings</span>
+        </a>
+    </nav>
+
+    <!-- Modal: Advanced Contact Selector -->
+    <div class="modal-overlay" id="contactSelectorModal">
+        <div class="modal large">
+            <div class="modal-header">
+                <h2>Select Contacts</h2>
+                <button class="close-btn" onclick="closeContactModal()"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                
+                <!-- Advanced Filters -->
+                <div class="filter-row">
+                    <input type="text" class="form-control" id="modalContactSearch" placeholder="Search name or email..." oninput="debounceModalSearch()" style="flex: 2;">
+                    
+                    <select class="form-control" id="modalContactStatus" onchange="loadModalContacts()">
+                        <option value="all">All Statuses</option>
+                        <option value="working">Working Emails</option>
+                        <option value="invalid">Invalid Emails</option>
+                        <option value="unknown">Not Checked</option>
+                    </select>
+
+                    <select class="form-control" id="modalContactDate" onchange="loadModalContacts()">
+                        <option value="all">Any Date Added</option>
+                        <option value="today">Added Today</option>
+                        <option value="week">Added This Week</option>
+                        <option value="month">Added This Month</option>
+                    </select>
+                    
+                    <input type="text" class="form-control" id="modalContactLocation" placeholder="Location..." oninput="debounceModalSearch()">
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.875rem; font-weight: 500;">
+                    <span id="modalContactCount">0 contacts found</span>
+                    <a href="javascript:void(0)" style="color: var(--accent-color);" onclick="selectAllModalContacts()">Select All Displayed</a>
+                </div>
+                <div class="contact-list-modal" id="modalContactList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeContactModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Asset Library -->
+    <div class="modal-overlay" id="assetLibraryModal">
+        <div class="modal large">
+            <div class="modal-header">
+                <h2>Asset Library</h2>
+                <button class="close-btn" onclick="closeAssetModal()"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 16px; border-radius: 8px; border: 1px dashed var(--border-color);">
+                    <div>
+                        <h4 style="font-size: 0.875rem; margin-bottom: 4px;">Upload New Asset</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">PDF, JPG, PNG, DOCX up to 5MB.</p>
+                    </div>
+                    <div>
+                        <input type="file" id="assetUploadInput" style="display:none" onchange="handleAssetUpload(event)">
+                        <button class="btn btn-primary btn-sm" onclick="document.getElementById('assetUploadInput').click()" id="btnUploadAsset">
+                            <i class="ph ph-upload-simple"></i> Upload File
+                        </button>
+                    </div>
+                </div>
+
+                <div class="contact-list-modal" id="modalAssetList" style="flex:1; overflow-y: auto; max-height: 400px;">
+                    <!-- Loaded dynamically -->
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeAssetModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        /**
+         * CONFIGURATION & STATE
+         */
+        
+        const SUPABASE_URL = "https://ewclfynaxnufbjazkame.supabase.co".trim();
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I".trim(); 
+        
+        // ---> IF YOUR APPS SCRIPT HAS AN 'API_SECRET', PASTE IT HERE <---
+        const APPS_SCRIPT_API_SECRET = "";
+
+        let supabaseClient;
+        let currentUser = null;
+        let emailServices = [];
+        
+        let currentMode = 'direct'; 
+        let selectedContactsMap = new Map(); 
+        let selectedAttachments = []; 
+        let lastCursorPosition = { target: 'body', range: null, selection: null };
+        let isHtmlMode = false;
+        
+        let modalSearchTimeout;
+        let allModalContacts = [];
+        let assetInsertType = 'attachment'; 
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        async function initializeApp() {
+            try {
+                // Initialize Client
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                const savedUser = localStorage.getItem('outreach_current_user');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                }
+
+                if (!currentUser || !currentUser.id) {
+                    document.getElementById('noUserOverlay').classList.add('show');
+                    return;
+                }
+
+                document.getElementById('currentUserName').textContent = currentUser.name || currentUser.email.split('@')[0];
+                document.getElementById('currentUserEmail').textContent = currentUser.email;
+                document.getElementById('currentUserAvatar').textContent = (currentUser.name || currentUser.email).charAt(0).toUpperCase();
+
+                // Fetch Database Data
+                await loadEmailServices();
+
+                // Check URL params
+                const urlParams = new URLSearchParams(window.location.search);
+                const contactId = urlParams.get('contact');
+                const templateId = urlParams.get('template');
+
+                if (contactId) await loadAndSelectSingleContact(contactId);
+                if (templateId) await loadTemplateData(templateId);
+
+                // Initialize preview
+                updatePreviewSelector();
+                renderPreview();
+
+            } catch (err) {
+                console.error("Init error", err);
+                showToast("Failed to initialize workspace", "error");
+            }
+        }
+
+        function goTo(page) { window.location.href = page; }
+
+        function toggleCustomDelay() {
+            const sel = document.getElementById('sendDelaySelect');
+            const inp = document.getElementById('customDelayInput');
+            if (sel.value === 'custom') {
+                inp.style.display = 'inline-block';
+            } else {
+                inp.style.display = 'none';
+                inp.value = '';
+            }
+        }
+
+        // ==========================================
+        // EMAIL SERVICES LOADER
+        // ==========================================
+        async function loadEmailServices() {
+            try {
+                const { data, error } = await supabaseClient.from('email_service_config').select('*').eq('status', 'active');
+                if (error) throw error;
+                
+                emailServices = data || [];
+                const selectEl = document.getElementById('emailServiceSelect');
+                
+                if (emailServices.length === 0) {
+                    selectEl.innerHTML = '<option value="">No senders found</option>';
+                    selectEl.disabled = true;
+                } else {
+                    selectEl.innerHTML = emailServices.map(s => `<option value="${s.appscript_api}">${escapeHTML(s.title)}</option>`).join('');
+                    selectEl.disabled = false;
+                }
+            } catch (err) {
+                console.error("Error loading email services:", err);
+                const selectEl = document.getElementById('emailServiceSelect');
+                selectEl.innerHTML = '<option value="">Error loading senders</option>';
+                selectEl.disabled = true;
+            }
+        }
+
+        // ==========================================
+        // MODE SWITCHING
+        // ==========================================
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeDirectBtn').classList.remove('active');
+            document.getElementById('modeTemplateBtn').classList.remove('active');
+            
+            if (mode === 'direct') {
+                document.getElementById('modeDirectBtn').classList.add('active');
+                document.getElementById('recipientSection').style.display = 'block';
+                document.getElementById('templateNameSection').style.display = 'none';
+                
+                document.getElementById('btnSend').style.display = 'inline-flex';
+                document.getElementById('btnSaveTemplate').style.display = 'none';
+                document.getElementById('emailServiceSelect').style.display = 'inline-block';
+                document.getElementById('delayContainer').style.display = 'flex';
+            } else {
+                document.getElementById('modeTemplateBtn').classList.add('active');
+                document.getElementById('recipientSection').style.display = 'none';
+                document.getElementById('templateNameSection').style.display = 'block';
+                
+                document.getElementById('btnSend').style.display = 'none';
+                document.getElementById('btnSaveTemplate').style.display = 'inline-flex';
+                document.getElementById('emailServiceSelect').style.display = 'none';
+                document.getElementById('delayContainer').style.display = 'none';
+            }
+        }
+
+        function switchRightPanel(tab) {
+            document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel-content').forEach(c => c.classList.remove('active'));
+            
+            if(tab === 'settings') {
+                document.querySelector('.panel-tab:nth-child(1)').classList.add('active');
+                document.getElementById('tabSettings').classList.add('active');
+            } else {
+                document.querySelector('.panel-tab:nth-child(2)').classList.add('active');
+                document.getElementById('tabPreview').classList.add('active');
+            }
+        }
+
+        // ==========================================
+        // CONTACT SELECTION
+        // ==========================================
+        async function loadAndSelectSingleContact(id) {
+            try {
+                const { data, error } = await supabaseClient.from('contacts').select('*').eq('id', id).eq('user_id', currentUser.id).single();
+                if (data && !error) { addContactChip(data); }
+            } catch (err) { console.error("Error loading specific contact", err); }
+        }
+
+        function addContactChip(contact) {
+            if (selectedContactsMap.has(contact.id)) return;
+            selectedContactsMap.set(contact.id, contact);
+            renderContactChips();
+            updatePreviewSelector();
+            document.getElementById('quickContactSearch').value = '';
+            document.getElementById('quickSearchResults').style.display = 'none';
+        }
+
+        function removeContactChip(id) {
+            selectedContactsMap.delete(id);
+            renderContactChips();
+            updatePreviewSelector();
+        }
+
+        function renderContactChips() {
+            const container = document.getElementById('selectedContactsArea');
+            const input = document.getElementById('quickContactSearch');
+            container.innerHTML = '';
+            
+            selectedContactsMap.forEach((c) => {
+                const name = c.name || c.email;
+                const chip = document.createElement('div');
+                chip.className = 'contact-chip';
+                chip.innerHTML = `<span>${escapeHTML(name)}</span> <button onclick="removeContactChip('${c.id}')"><i class="ph ph-x"></i></button>`;
+                container.appendChild(chip);
+            });
+            container.appendChild(input);
+        }
+
+        async function handleQuickSearch(e) {
+            const val = e.target.value.trim();
+            const resDiv = document.getElementById('quickSearchResults');
+            if (val.length < 2) { resDiv.style.display = 'none'; return; }
+
+            try {
+                const { data, error } = await supabaseClient.from('contacts').select('id, name, email').eq('user_id', currentUser.id).or(`name.ilike.%${val}%,email.ilike.%${val}%`).limit(5);
+
+                if (error || !data || data.length === 0) {
+                    resDiv.innerHTML = '<div style="padding:10px;font-size:0.8rem;color:var(--text-muted);">No contacts found</div>';
+                } else {
+                    resDiv.innerHTML = data.map(c => `
+                        <div style="padding:10px; cursor:pointer; border-bottom:1px solid var(--border-color);" onmouseover="this.style.background='var(--bg-color)'" onmouseout="this.style.background='white'" onclick='handleQuickSelect(${JSON.stringify(c)})'>
+                            <div style="font-size:0.875rem; font-weight:500;">${escapeHTML(c.name || 'Unknown')}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHTML(c.email)}</div>
+                        </div>
+                    `).join('');
+                }
+                resDiv.style.display = 'block';
+            } catch(err) { console.error(err); }
+        }
+        
+        window.handleQuickSelect = function(contactStr) { addContactChip(contactStr); };
+
+        function openAdvancedContactModal() {
+            document.getElementById('contactSelectorModal').classList.add('show');
+            loadModalContacts(); 
+        }
+        function closeContactModal() { document.getElementById('contactSelectorModal').classList.remove('show'); }
+
+        function debounceModalSearch() {
+            clearTimeout(modalSearchTimeout);
+            modalSearchTimeout = setTimeout(() => loadModalContacts(), 400);
+        }
+
+        async function loadModalContacts() {
+            const queryName = document.getElementById('modalContactSearch').value.trim();
+            const queryStatus = document.getElementById('modalContactStatus').value;
+            const queryDate = document.getElementById('modalContactDate').value;
+            const queryLocation = document.getElementById('modalContactLocation').value.trim();
+            
+            try {
+                let query = supabaseClient.from('contacts').select('*').eq('user_id', currentUser.id).limit(100);
+                
+                if (queryName) query = query.or(`name.ilike.%${queryName}%,email.ilike.%${queryName}%`);
+                if (queryLocation) query = query.ilike('location', `%${queryLocation}%`);
+                
+                if (queryStatus === 'working') query = query.eq('is_email_working', true);
+                else if (queryStatus === 'invalid') query = query.eq('is_email_working', false);
+                else if (queryStatus === 'unknown') query = query.is('is_email_working', null);
+
+                if (queryDate !== 'all') {
+                    const now = new Date();
+                    let dateGte;
+                    if (queryDate === 'today') dateGte = new Date(now.setHours(0,0,0,0)).toISOString();
+                    else if (queryDate === 'week') { const firstDay = now.getDate() - now.getDay(); dateGte = new Date(now.setDate(firstDay)).toISOString(); }
+                    else if (queryDate === 'month') dateGte = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+                    if(dateGte) query = query.gte('created_at', dateGte);
+                }
+                
+                const { data, error } = await query;
+                
+                if (error) {
+                    if (error.status === 401 || error.code === 'PGRST301') {
+                        showToast("Unauthorized. Database RLS requires auth. Please Log In correctly.", "error");
+                    }
+                    throw error;
+                }
+                
+                allModalContacts = data || [];
+                document.getElementById('modalContactCount').textContent = `${allModalContacts.length} contacts found`;
+                
+                const list = document.getElementById('modalContactList');
+                if (allModalContacts.length === 0) {
+                    list.innerHTML = `<div class="empty-state"><h3>No contacts found matching criteria</h3></div>`;
+                    return;
+                }
+
+                list.innerHTML = allModalContacts.map(c => {
+                    const isSelected = selectedContactsMap.has(c.id);
+                    const statusText = c.is_email_working === true ? '<span style="color:var(--success);">Working</span>' 
+                                     : c.is_email_working === false ? '<span style="color:var(--danger);">Invalid</span>' 
+                                     : '<span style="color:var(--text-muted);">Unchecked</span>';
+
+                    return `
+                        <div class="contact-row ${isSelected ? 'selected' : ''}" onclick='toggleModalContactSelection(this, ${JSON.stringify(c)})'>
+                            <div style="display:flex; flex-direction:column;">
+                                <strong style="font-size:0.875rem;">${escapeHTML(c.name || 'Unknown')}</strong>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">
+                                    ${escapeHTML(c.email)} | ${escapeHTML(c.location || 'No Location')} | ${statusText}
+                                </span>
+                            </div>
+                            <i class="ph ${isSelected ? 'ph-check-circle' : 'ph-circle'}" style="font-size:1.2rem; color:${isSelected ? 'var(--accent-color)' : 'var(--border-color)'};"></i>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch(err) {
+                console.error("Contacts loading error:", err);
+            }
+        }
+
+        window.toggleModalContactSelection = function(el, contact) {
+            if (selectedContactsMap.has(contact.id)) {
+                removeContactChip(contact.id);
+                el.classList.remove('selected');
+                el.querySelector('i').className = 'ph ph-circle';
+                el.querySelector('i').style.color = 'var(--border-color)';
+            } else {
+                addContactChip(contact);
+                el.classList.add('selected');
+                el.querySelector('i').className = 'ph ph-check-circle';
+                el.querySelector('i').style.color = 'var(--accent-color)';
+            }
+        };
+
+        window.selectAllModalContacts = function() {
+            allModalContacts.forEach(c => addContactChip(c));
+            loadModalContacts();
+        };
+
+        // ==========================================
+        // EDITOR & VARIABLES
+        // ==========================================
+        function execCmd(command) {
+            if (isHtmlMode) return;
+            document.execCommand(command, false, null);
+            document.getElementById('emailBody').focus();
+        }
+
+        function execCmdArg(command, arg) {
+            if (isHtmlMode) return;
+            document.execCommand(command, false, arg);
+            document.getElementById('emailBody').focus();
+        }
+
+        function insertLink() {
+            if (isHtmlMode) return;
+            const url = prompt("Enter link URL:", "https://");
+            if (url) document.execCommand('createLink', false, url);
+        }
+
+        function toggleHtmlMode() {
+            const editorDiv = document.getElementById('emailBody');
+            const htmlArea = document.getElementById('emailBodyHtml');
+            const btn = document.getElementById('btnToggleHtml');
+
+            isHtmlMode = !isHtmlMode;
+
+            if (isHtmlMode) {
+                htmlArea.value = editorDiv.innerHTML;
+                editorDiv.style.display = 'none';
+                htmlArea.style.display = 'block';
+                btn.classList.add('active');
+            } else {
+                editorDiv.innerHTML = htmlArea.value;
+                htmlArea.style.display = 'none';
+                editorDiv.style.display = 'block';
+                btn.classList.remove('active');
+            }
+        }
+
+        function getEmailHtmlContent() {
+            return isHtmlMode ? document.getElementById('emailBodyHtml').value : document.getElementById('emailBody').innerHTML;
+        }
+
+        function saveCursorPosition(target) {
+            if (isHtmlMode) return;
+            const sel = window.getSelection();
+            if (sel.getRangeAt && sel.rangeCount) {
+                lastCursorPosition = { target, range: sel.getRangeAt(0), selection: sel };
+            }
+        }
+
+        function insertVariable(variable) {
+            if (lastCursorPosition.target === 'subject') {
+                const subInput = document.getElementById('emailSubject');
+                const start = subInput.selectionStart || subInput.value.length;
+                const end = subInput.selectionEnd || subInput.value.length;
+                subInput.value = subInput.value.substring(0, start) + variable + subInput.value.substring(end);
+                subInput.focus();
+                const newPos = start + variable.length;
+                subInput.setSelectionRange(newPos, newPos);
+            } else {
+                if (isHtmlMode) {
+                    const htmlArea = document.getElementById('emailBodyHtml');
+                    const start = htmlArea.selectionStart;
+                    const end = htmlArea.selectionEnd;
+                    htmlArea.value = htmlArea.value.substring(0, start) + variable + htmlArea.value.substring(end);
+                    htmlArea.focus();
+                } else {
+                    const editor = document.getElementById('emailBody');
+                    editor.focus();
+                    if (lastCursorPosition.range) {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(lastCursorPosition.range);
+                    }
+                    document.execCommand('insertText', false, variable);
+                }
+            }
+            renderPreview();
+        }
+
+        // ==========================================
+        // LIVE PREVIEW NAVIGATION
+        // ==========================================
+        function updatePreviewSelector() {
+            const sel = document.getElementById('previewContactSelect');
+            sel.innerHTML = '<option value="sample">Placeholder Data</option>';
+            selectedContactsMap.forEach(c => {
+                sel.innerHTML += `<option value="${c.id}">${escapeHTML(c.name || c.email)}</option>`;
+            });
+            updatePreviewNavButtons();
+        }
+
+        function updatePreviewNavButtons() {
+            const sel = document.getElementById('previewContactSelect');
+            document.getElementById('prevPreviewBtn').disabled = (sel.selectedIndex <= 0);
+            document.getElementById('nextPreviewBtn').disabled = (sel.selectedIndex >= sel.options.length - 1);
+        }
+
+        function nextPreview() {
+            const sel = document.getElementById('previewContactSelect');
+            if (sel.selectedIndex < sel.options.length - 1) {
+                sel.selectedIndex++;
+                renderPreview();
+            }
+        }
+
+        function prevPreview() {
+            const sel = document.getElementById('previewContactSelect');
+            if (sel.selectedIndex > 0) {
+                sel.selectedIndex--;
+                renderPreview();
+            }
+        }
+
+        function getPreviewContact() {
+            const id = document.getElementById('previewContactSelect').value;
+            if (id === 'sample' || !selectedContactsMap.has(id)) {
+                return { name: 'John Doe', first_name: 'John', last_name: 'Doe', email: 'john.doe@example.com', company: 'Acme Corp', location: 'New York, USA' };
+            }
+            const c = selectedContactsMap.get(id);
+            const nameParts = (c.name || '').split(' ');
+            return {
+                name: c.name || 'Friend',
+                first_name: nameParts[0] || 'Friend',
+                last_name: nameParts.slice(1).join(' ') || '',
+                email: c.email || '',
+                company: c.company || 'your company',
+                location: c.location || 'your city'
+            };
+        }
+
+        function resolveVariables(text, contact) {
+            if (!text) return '';
+            return text.replace(/{{name}}/g, contact.name).replace(/{{first_name}}/g, contact.first_name).replace(/{{last_name}}/g, contact.last_name)
+                       .replace(/{{email}}/g, contact.email).replace(/{{company}}/g, contact.company).replace(/{{location}}/g, contact.location);
+        }
+
+        function renderPreview() {
+            const pContact = getPreviewContact();
+            const rawSub = document.getElementById('emailSubject').value;
+            const rawBody = getEmailHtmlContent(); 
+
+            document.getElementById('prevFrom').textContent = escapeHTML(currentUser.email);
+            document.getElementById('prevTo').textContent = escapeHTML(pContact.email);
+            document.getElementById('prevSubject').textContent = resolveVariables(rawSub, pContact) || '(No Subject)';
+            document.getElementById('prevBody').innerHTML = resolveVariables(rawBody, pContact);
+            
+            updatePreviewNavButtons();
+        }
+
+        document.getElementById('emailSubject').addEventListener('input', () => { if(document.getElementById('tabPreview').classList.contains('active')) renderPreview(); });
+        document.getElementById('emailBody').addEventListener('input', () => { if(document.getElementById('tabPreview').classList.contains('active')) renderPreview(); });
+        document.getElementById('emailBodyHtml').addEventListener('input', () => { if(document.getElementById('tabPreview').classList.contains('active')) renderPreview(); });
+
+        // ==========================================
+        // ASSETS & ATTACHMENTS
+        // ==========================================
+        function openAssetLibrary(type) {
+            assetInsertType = type;
+            document.getElementById('assetLibraryModal').classList.add('show');
+            loadAssetLibrary();
+        }
+        function closeAssetModal() { document.getElementById('assetLibraryModal').classList.remove('show'); }
+
+        async function loadAssetLibrary() {
+            try {
+                const { data, error } = await supabaseClient.from('assets').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+                
+                if (error) {
+                    if (error.status === 401 || error.code === 'PGRST301') showToast("Unauthorized. You must login to view assets.", "error");
+                    throw error;
+                }
+                
+                const list = document.getElementById('modalAssetList');
+                if (!data || data.length === 0) {
+                    list.innerHTML = `<div class="empty-state"><h4>No assets found</h4><p>Upload a file to get started.</p></div>`;
+                    return;
+                }
+
+                list.innerHTML = data.map(asset => {
+                    const isImg = asset.mime_type && asset.mime_type.startsWith('image/');
+                    if (assetInsertType === 'image' && !isImg) return ''; 
+
+                    return `
+                        <div class="contact-row" onclick='selectAssetFromLibrary(${JSON.stringify(asset)})'>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <i class="ph ${isImg ? 'ph-image' : 'ph-file'} " style="font-size:1.5rem; color:var(--text-muted);"></i>
+                                <div style="display:flex; flex-direction:column;">
+                                    <strong style="font-size:0.875rem;">${escapeHTML(asset.original_name || asset.name)}</strong>
+                                    <span style="font-size:0.75rem; color:var(--text-muted);">${(asset.file_size / 1024).toFixed(1)} KB</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline btn-sm">Select</button>
+                        </div>
+                    `;
+                }).join('');
+            } catch(err) { console.error("Asset load error", err); }
+        }
+
+        window.selectAssetFromLibrary = async function(asset) {
+            if (assetInsertType === 'attachment') {
+                if (!selectedAttachments.find(a => a.id === asset.id)) {
+                    selectedAttachments.push(asset);
+                    renderAttachments();
+                }
+            } else if (assetInsertType === 'image') {
+                const { data } = supabaseClient.storage.from('email-assets').getPublicUrl(asset.storage_path);
+                if (data && data.publicUrl) {
+                    if (isHtmlMode) {
+                        const imgTag = `<img src="${data.publicUrl}" alt="${escapeHTML(asset.original_name)}" style="max-width:100%;" />`;
+                        const htmlArea = document.getElementById('emailBodyHtml');
+                        const start = htmlArea.selectionStart;
+                        const end = htmlArea.selectionEnd;
+                        htmlArea.value = htmlArea.value.substring(0, start) + imgTag + htmlArea.value.substring(end);
+                    } else {
+                        document.getElementById('emailBody').focus();
+                        document.execCommand('insertImage', false, data.publicUrl);
+                    }
+                }
+            }
+            closeAssetModal();
+            renderPreview();
+        };
+
+        function renderAttachments() {
+            const list = document.getElementById('attachmentList');
+            if (selectedAttachments.length === 0) {
+                list.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin: 10px 0;">No attachments added.</p>`;
+                return;
+            }
+            list.innerHTML = selectedAttachments.map(a => `
+                <div class="attachment-item">
+                    <div class="att-info">
+                        <i class="ph ph-paperclip att-icon"></i>
+                        <div class="att-details">
+                            <span class="att-name" title="${escapeHTML(a.original_name)}">${escapeHTML(a.original_name)}</span>
+                            <span class="att-size">${(a.file_size / 1024).toFixed(1)} KB</span>
+                        </div>
+                    </div>
+                    <button class="att-remove" onclick="removeAttachment('${a.id}')"><i class="ph ph-x"></i></button>
+                </div>
+            `).join('');
+        }
+
+        window.removeAttachment = function(id) {
+            selectedAttachments = selectedAttachments.filter(a => a.id !== id);
+            renderAttachments();
+        };
+
+        async function handleAssetUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { showToast('File exceeds 5MB limit', 'error'); return; }
+
+            const btn = document.getElementById('btnUploadAsset');
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Uploading...';
+            btn.disabled = true;
+
+            try {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}_${Date.now()}.${fileExt}`;
+                const filePath = `${currentUser.id}/${fileName}`;
+
+                const { data: uploadData, error: uploadErr } = await supabaseClient.storage.from('email-assets').upload(filePath, file);
+
+                if (uploadErr) {
+                    if (uploadErr.message.includes("JWS") || uploadErr.statusCode === 400 || uploadErr.statusCode === 401) {
+                        showToast("Authentication Error. Ensure keys are valid and RLS permits uploads.", "error");
+                    }
+                    throw uploadErr;
+                }
+
+                const payload = {
+                    user_id: currentUser.id, name: fileName, original_name: file.name, file_type: fileExt, mime_type: file.type,
+                    file_size: file.size, storage_bucket: 'email-assets', storage_path: filePath, asset_type: 'attachment'
+                };
+
+                const { data: dbData, error: dbErr } = await supabaseClient.from('assets').insert([payload]).select().single();
+                if (dbErr) throw dbErr;
+
+                showToast('Asset uploaded successfully', 'success');
+                selectAssetFromLibrary(dbData);
+
+            } catch (err) {
+                console.error("Upload error", err);
+                showToast('Failed to upload file. Check console.', 'error');
+            } finally {
+                btn.innerHTML = '<i class="ph ph-upload-simple"></i> Upload File';
+                btn.disabled = false;
+                e.target.value = ''; 
+            }
+        }
+
+        // ==========================================
+        // TEMPLATES & SENDING
+        // ==========================================
+        async function loadTemplateData(id) {
+            try {
+                const { data, error } = await supabaseClient.from('email_templates').select('*').eq('id', id).eq('user_id', currentUser.id).single();
+                if (error || !data) return;
+
+                switchMode('template');
+                document.getElementById('templateName').value = data.name || '';
+                document.getElementById('emailSubject').value = data.subject || '';
+                document.getElementById('emailBody').innerHTML = data.body_html || '';
+                document.getElementById('emailBodyHtml').value = data.body_html || '';
+            } catch(err) { console.error("Error loading template", err); }
+        }
+
+        async function saveTemplate() {
+            const name = document.getElementById('templateName').value.trim();
+            const subject = document.getElementById('emailSubject').value.trim();
+            const htmlBody = getEmailHtmlContent();
+            
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = htmlBody;
+            const textBody = tempDiv.textContent || tempDiv.innerText || "";
+
+            if (!name) { showToast("Template Name is required", "error"); return; }
+            if (!subject && !textBody.trim()) { showToast("Subject or Body is required", "error"); return; }
+
+            const btn = document.getElementById('btnSaveTemplate');
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const payload = { user_id: currentUser.id, name, subject, body_html: htmlBody, body_text: textBody };
+                const { error } = await supabaseClient.from('email_templates').insert([payload]);
+                if (error) throw error;
+                showToast("Template saved successfully", "success");
+                setTimeout(() => goTo('templates.html'), 1500);
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to save template", "error");
+            } finally {
+                btn.innerHTML = '<i class="ph ph-files"></i> <span>Save Template</span>';
+                btn.disabled = false;
+            }
+        }
+
+        function saveDraft() { 
+            let currentName = document.getElementById('templateName').value.trim();
+            if (!currentName) currentName = "Draft - " + new Date().toLocaleDateString();
+            
+            const draftName = prompt("Enter a name to save this draft as a Template:", currentName);
+            if (!draftName) return; 
+            
+            switchMode('template');
+            document.getElementById('templateName').value = draftName;
+            saveTemplate();
+        }
+
+        // ==========================================
+        // QUEUEING FOR APPS SCRIPT BACKGROUND SYNC
+        // ==========================================
+        async function confirmSendQueue() {
+            if (selectedContactsMap.size === 0) { showToast("Please select at least one recipient", "warning"); return; }
+            const rawSub = document.getElementById('emailSubject').value.trim();
+            const rawBody = getEmailHtmlContent().trim();
+            if (!rawSub && !rawBody) { showToast("Email subject and body cannot be empty", "error"); return; }
+
+            const apiSelect = document.getElementById('emailServiceSelect');
+            if (!apiSelect.value) { showToast("No active email service configured. Please add one in Settings.", "error"); return; }
+
+            let delaySecs = 0;
+            const selVal = document.getElementById('sendDelaySelect').value;
+            if (selVal === 'custom') {
+                delaySecs = parseInt(document.getElementById('customDelayInput').value, 10) || 0;
+            } else {
+                delaySecs = parseInt(selVal, 10);
+            }
+
+            const serviceName = apiSelect.options[apiSelect.selectedIndex].text;
+            let msg = `Queue this email to ${selectedContactsMap.size} contact(s) using "${serviceName}"?`;
+            if (delaySecs > 0) msg += `\n\n(A delay of ${delaySecs} seconds will be enforced between each email in the background)`;
+
+            if (confirm(msg)) {
+                queueCampaign(apiSelect.value, delaySecs);
+            }
+        }
+
+        async function queueCampaign(apiUrl, delaySecs) {
+            const btn = document.getElementById('btnSend');
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> <span>Queueing...</span>';
+            btn.disabled = true;
+
+            const rawSub = document.getElementById('emailSubject').value;
+            const rawBodyHTML = getEmailHtmlContent();
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = rawBodyHTML;
+            const finalText = tempDiv.textContent || tempDiv.innerText || "";
+            
+            const contacts = Array.from(selectedContactsMap.values());
+
+            try {
+                // 1. Create a hidden template on the fly for this direct send
+                const tplPayload = {
+                    user_id: currentUser.id,
+                    name: "Direct Send Template - " + new Date().toLocaleString(),
+                    subject: rawSub,
+                    body_html: rawBodyHTML,
+                    body_text: finalText
+                };
+
+                const { data: template, error: tplErr } = await supabaseClient
+                    .from('email_templates')
+                    .insert([tplPayload])
+                    .select()
+                    .single();
+
+                if (tplErr) {
+                    console.error("Template Error:", tplErr);
+                    throw new Error("Template Error: " + (tplErr.message || tplErr.details));
+                }
+
+                // 2. Create Campaign using the newly generated template_id
+                const campaignName = "Direct Send - " + new Date().toLocaleString();
+                
+                const campaignPayload = {
+                    user_id: currentUser.id,
+                    name: campaignName,
+                    template_id: template.id,
+                    status: 'running',
+                    total_recipients: contacts.length,
+                    sent_count: 0,
+                    failed_count: 0,
+                    opened_count: 0,
+                    replied_count: 0,
+                    bounced_count: 0,
+                    started_at: new Date().toISOString()
+                };
+                
+                const { data: campaign, error: campErr } = await supabaseClient
+                    .from('campaigns')
+                    .insert([campaignPayload])
+                    .select()
+                    .single();
+
+                if (campErr) {
+                    console.error("Campaign Error:", campErr);
+                    throw new Error("Campaign Error: " + (campErr.message || campErr.details));
+                }
+
+                // 3. Insert Recipients
+                const recipientPayload = contacts.map(c => ({
+                    campaign_id: campaign.id,
+                    contact_id: c.id,
+                    email: c.email || '',
+                    name: c.name || null,
+                    company: c.company || null,
+                    location: c.location || null,
+                    status: 'pending',
+                    attempt_count: 0,
+                    merge_data: { name: c.name || '', email: c.email || '', company: c.company || '', location: c.location || '' }
+                }));
+
+                const { error: recErr } = await supabaseClient
+                    .from('campaign_recipients')
+                    .insert(recipientPayload);
+
+                if (recErr) {
+                    console.error("Recipients Error:", recErr);
+                    throw new Error("Recipients Error: " + (recErr.message || recErr.details));
+                }
+
+                // 4. Trigger Apps Script (Fire and Forget)
+                const formData = new URLSearchParams();
+                formData.append("action", "process_email_queue"); 
+                formData.append("campaign_id", campaign.id);
+                formData.append("delay", delaySecs);
+                if (APPS_SCRIPT_API_SECRET) formData.append("api_secret", APPS_SCRIPT_API_SECRET);
+                
+                fetch(apiUrl, { 
+                    method: 'POST', 
+                    mode: 'no-cors',
+                    body: formData 
+                }).catch(e => console.log("Apps script trigger fired silently:", e));
+
+                showToast(`Successfully queued ${contacts.length} emails. Background process started!`, "success");
+                
+                selectedContactsMap.clear();
+                renderContactChips();
+                
+                setTimeout(() => goTo('campaigns.html'), 2000);
+
+            } catch (err) {
+                console.error("Queueing error:", err);
+                showToast(err.message || "Failed to queue campaign.", "error");
+                btn.innerHTML = '<i class="ph ph-paper-plane-right"></i> <span>Send Email</span>';
+                btn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // UTILITIES
+        // ==========================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'warning-circle';
+            const title = type.charAt(0).toUpperCase() + type.slice(1);
+
+            toast.innerHTML = `
+                <i class="ph ph-${icon}"></i>
+                <div class="toast-content">
+                    <h5>${title}</h5>
+                    <p>${escapeHTML(message)}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Email Outreach Manager</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase & Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            /* Colors */
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --primary-color: #0F172A;
+            --primary-hover: #1E293B;
+            --accent-color: #4F46E5;
+            --accent-hover: #4338CA;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --sidebar-width: 260px;
+            
+            /* Shadows & Effects */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.15);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            display: flex;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+            border-radius: 4px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface-color);
+            height: 100vh;
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            z-index: 50;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 40px;
+            padding: 0 12px;
+            color: var(--primary-color);
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: #EEF2FF;
+            color: var(--accent-color);
+        }
+
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            height: 80px;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .search-container {
+            position: relative;
+            width: 320px;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--bg-color);
+            font-size: 0.875rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+            background: var(--surface-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .user-info:hover {
+            background: var(--bg-color);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-color), #818CF8);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-details h4 {
+            font-size: 0.875rem;
+            color: var(--text-main);
+        }
+
+        .user-details p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* User Dropdown Menu */
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 12px;
+            width: 260px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 100;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .user-dropdown.show {
+            display: flex;
+        }
+
+        .dropdown-header {
+            padding: 16px;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        .dropdown-header strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.875rem;
+            color: var(--text-main);
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-color);
+            color: var(--accent-color);
+        }
+        
+        .dropdown-item i {
+            font-size: 1.1rem;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
+
+        /* Dashboard Body */
+        .dashboard-body {
+            padding: 40px;
+            flex: 1;
+        }
+
+        /* Hero Section (3D effect) */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 500px;
+        }
+
+        .hero h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            color: #CBD5E1;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--surface-color);
+            color: var(--accent-color);
+        }
+
+        .btn-primary:hover {
+            background: #F8FAFC;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 3D Visual Element */
+        .hero-visual {
+            position: absolute;
+            right: 40px;
+            width: 200px;
+            height: 200px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s;
+        }
+
+        .hero-card {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: white;
+            box-shadow: var(--shadow-glow);
+            transform: translateZ(50px);
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background: var(--surface-color);
+            padding: 24px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .kpi-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #EEF2FF;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        /* Main Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .card-action {
+            color: var(--accent-color);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .card-body {
+            padding: 24px;
+            flex: 1;
+        }
+
+        /* Lists & Items */
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .list-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .list-item:first-child {
+            padding-top: 0;
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .item-title {
+            font-weight: 500;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+
+        .item-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .status-draft { background: #F1F5F9; color: #475569; }
+        .status-active { background: #ECFDF5; color: var(--success); }
+        .status-completed { background: #EEF2FF; color: var(--accent-color); }
+        
+        /* Empty States */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: #CBD5E1;
+        }
+        
+        .empty-state h3 {
+            color: var(--text-main);
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+
+        /* Error Banner */
+        #error-banner {
+            display: none;
+            background: #FEF2F2;
+            color: var(--danger);
+            padding: 12px 24px;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-bottom: 1px solid #FCA5A5;
+            position: sticky;
+            top: 0;
+            z-index: 60;
+        }
+
+        /* Mobile Nav */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            z-index: 50;
+            padding: 8px 16px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-decoration: none;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--accent-color);
+        }
+
+        .mobile-nav-item i {
+            font-size: 1.5rem;
+        }
+
+        .mobile-fab {
+            background: var(--accent-color);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transform: translateY(-16px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding-bottom: 70px;
+            }
+            .header {
+                padding: 0 20px;
+            }
+            .dashboard-body {
+                padding: 20px;
+            }
+            .hero {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 24px;
+            }
+            .hero-visual {
+                display: none;
+            }
+            .mobile-nav {
+                display: flex;
+            }
+            .search-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="error-banner"></div>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="ph-fill ph-paper-plane-tilt"></i>
+            Outreach
+        </div>
+        <nav class="nav-links">
+            <a href="javascript:void(0)" onclick="goTo('index.html')" class="nav-item active">
+                <i class="ph ph-squares-four"></i> Dashboard
+            </a>
+            <a href="javascript:void(0)" onclick="goTo('contacts.html')" class="nav-item">
+                <i class="ph ph-users"></i> Contacts
+            </a>
+            <a href="javascript:void(0)" onclick="goTo('templates.html')" class="nav-item">
+                <i class="ph ph-file-text"></i> Templates
+            </a>
+            <a href="javascript:void(0)" onclick="goTo('campaigns.html')" class="nav-item">
+                <i class="ph ph-megaphone"></i> Campaigns
+            </a>
+            <a href="javascript:void(0)" onclick="goTo('viewmails.html')" class="nav-item">
+                <i class="ph ph-tray"></i> Inbox
+            </a>
+            <a href="javascript:void(0)" onclick="goTo('analytics.html')" class="nav-item">
+                <i class="ph ph-chart-line-up"></i> Analytics
+            </a>
+            <a href="javascript:void(0)" onclick="goTo('settings.html')" class="nav-item" style="margin-top: auto;">
+                <i class="ph ph-gear"></i> Settings
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="search-container">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" class="search-input" placeholder="Search contacts, campaigns..." id="globalSearch">
+            </div>
+            
+            <div class="user-profile">
+                <button class="notification-btn" onclick="goTo('viewmails.html')">
+                    <i class="ph ph-bell"></i>
+                    <span class="notification-badge" id="nav-unread-count">0</span>
+                </button>
+                
+                <!-- Clickable User Profile triggering Dropdown -->
+                <div class="user-info" id="profileToggle" onclick="toggleDropdown(event)">
+                    <div class="avatar" id="user-avatar-initial">?</div>
+                    <div class="user-details">
+                        <h4 id="user-name">Loading...</h4>
+                        <p id="user-email">...</p>
+                    </div>
+                    <i class="ph ph-caret-down" style="color: var(--text-muted); font-size: 0.875rem;"></i>
+                </div>
+
+                <!-- Custom Dropdown Menu for Users -->
+                <div class="user-dropdown" id="userDropdownMenu">
+                    <!-- Dropdown content will be injected by JavaScript -->
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-body">
+            
+            <!-- Hero -->
+            <section class="hero" id="hero-container">
+                <div class="hero-content">
+                    <h1 id="hero-greeting">Your outreach, all in one place.</h1>
+                    <p>Manage contacts, launch personalized campaigns, and handle every conversation from one seamless workspace.</p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary" onclick="goTo('campaigns.html')">
+                            <i class="ph ph-plus"></i> Create Campaign
+                        </button>
+                        <button class="btn btn-outline" onclick="goTo('emailcreator.html')">
+                            <i class="ph ph-pencil-simple"></i> Compose Email
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-visual" id="hero-visual">
+                    <div class="hero-card">
+                        <i class="ph-fill ph-envelope-open"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KPIs -->
+            <section class="kpi-grid">
+                <!-- Total Contacts -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span>TOTAL CONTACTS</span>
+                        <div class="kpi-icon"><i class="ph ph-users"></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpi-contacts">0</div>
+                </div>
+                
+                <!-- Emails Sent -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span>EMAILS SENT</span>
+                        <div class="kpi-icon"><i class="ph ph-paper-plane-right"></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpi-sent">0</div>
+                </div>
+
+                <!-- Replies -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span>REPLIES</span>
+                        <div class="kpi-icon" style="background: #ECFDF5; color: var(--success);"><i class="ph ph-arrow-u-down-left"></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpi-replies">0</div>
+                </div>
+
+                <!-- Reply Rate -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span>REPLY RATE</span>
+                        <div class="kpi-icon" style="background: #FFFBEB; color: var(--warning);"><i class="ph ph-chart-pie-slice"></i></div>
+                    </div>
+                    <div class="kpi-value" id="kpi-rate">—</div>
+                </div>
+            </section>
+
+            <!-- Main Grid -->
+            <div class="dashboard-grid">
+                <!-- Left Column -->
+                <div class="grid-left" style="display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- Campaign Performance -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Recent Campaigns</h3>
+                            <a class="card-action" onclick="goTo('campaigns.html')">View All</a>
+                        </div>
+                        <div class="card-body" id="campaigns-list">
+                            <div class="empty-state">
+                                <i class="ph ph-megaphone"></i>
+                                <h3>Loading...</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Activity Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Activity (Last 7 Days)</h3>
+                        </div>
+                        <div class="card-body" style="height: 300px; display: flex; align-items: center; justify-content: center;" id="chart-container">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="grid-right" style="display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- Recent Conversations -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Recent Conversations</h3>
+                            <a class="card-action" onclick="goTo('viewmails.html')">Go to Inbox</a>
+                        </div>
+                        <div class="card-body" id="conversations-list">
+                            <div class="empty-state">
+                                <i class="ph ph-chats"></i>
+                                <h3>Loading...</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Quick Actions</h3>
+                        </div>
+                        <div class="card-body" style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-outline" style="width: 100%; justify-content: center; color: var(--text-main); border-color: var(--border-color);" onclick="goTo('contacts.html')">
+                                <i class="ph ph-user-plus"></i> Add Contact
+                            </button>
+                            <button class="btn btn-outline" style="width: 100%; justify-content: center; color: var(--text-main); border-color: var(--border-color);" onclick="goTo('templates.html')">
+                                <i class="ph ph-file-plus"></i> Create Template
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a href="javascript:void(0)" onclick="goTo('index.html')" class="mobile-nav-item active">
+            <i class="ph-fill ph-squares-four"></i>
+            <span>Home</span>
+        </a>
+        <a href="javascript:void(0)" onclick="goTo('contacts.html')" class="mobile-nav-item">
+            <i class="ph ph-users"></i>
+            <span>Contacts</span>
+        </a>
+        <div class="mobile-nav-item" onclick="goTo('emailcreator.html')">
+            <div class="mobile-fab">
+                <i class="ph ph-pencil-simple"></i>
+            </div>
+        </div>
+        <a href="javascript:void(0)" onclick="goTo('viewmails.html')" class="mobile-nav-item">
+            <i class="ph ph-tray"></i>
+            <span>Inbox</span>
+        </a>
+        <a href="javascript:void(0)" onclick="goTo('settings.html')" class="mobile-nav-item">
+            <i class="ph ph-gear"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
+
+    <script>
+        /**
+         * SUPABASE CONFIGURATION
+         * NEVER use service_role keys here.
+         */
+        const SUPABASE_URL = "https://ewclfynaxnufbjazkame.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I";
+        
+        let supabaseClient;
+        let currentUser = null;
+
+        // Navigation
+        function goTo(page) {
+            window.location.href = page;
+        }
+
+        // Dropdown Logic
+        function toggleDropdown(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('userDropdownMenu');
+            dropdown.classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('userDropdownMenu');
+            const profileToggle = document.getElementById('profileToggle');
+            if (dropdown && dropdown.classList.contains('show') && !dropdown.contains(e.target) && !profileToggle.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function showError(msg) {
+            const banner = document.getElementById('error-banner');
+            banner.innerHTML = `${msg} <button onclick="location.reload()" style="margin-left:12px; padding:2px 8px; border-radius:4px; border:1px solid currentcolor; background:transparent; color:inherit; cursor:pointer;">Retry</button>`;
+            banner.style.display = 'block';
+            console.error(msg);
+        }
+
+        // Initialize App - BYPASSING REAL AUTH
+        async function initializeApp() {
+            try {
+                if (SUPABASE_URL === "YOUR_SUPABASE_URL") {
+                    showError("Supabase credentials not configured in index.html");
+                    return;
+                }
+
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // 1. Fetch user directly from LocalStorage (Simulated Auth)
+                const savedUser = localStorage.getItem('outreach_current_user');
+                
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                }
+
+                // 2. Render the dropdown based on database users
+                await renderUserDropdown();
+
+                if (!currentUser) {
+                    // Render "No User Selected" state
+                    renderNoUserState();
+                    return;
+                }
+
+                // 3. Initialize modules for selected user
+                renderUserProfile();
+                
+                // Fetch user data in parallel
+                await Promise.all([
+                    loadDashboardStats(),
+                    loadCampaigns(),
+                    loadRecentConversations(),
+                    loadChartData(),
+                    loadUnreadCount()
+                ]);
+
+                setup3DEffect();
+                setupSearch();
+                setupRealtime();
+
+            } catch (err) {
+                showError("Unable to load dashboard data. Please check your connection and try again.");
+                console.error(err);
+            }
+        }
+
+        // --- Custom User Selection Logic (Debugging Added) ---
+
+        async function renderUserDropdown() {
+            const dropdown = document.getElementById('userDropdownMenu');
+            
+            console.log("========== USER DROPDOWN ==========");
+            console.log("Current user:", currentUser);
+
+            try {
+                // Fetch all users from the database
+                const { data: usersList, error } = await supabaseClient.from('users').select('id, name, email');
+                
+                console.log("Users returned from Supabase:", usersList);
+                console.log("Supabase error:", error);
+
+                if (error) throw error;
+                
+                if (!usersList || usersList.length === 0) {
+                    dropdown.innerHTML = `<div class="dropdown-header">No users found in database</div>`;
+                    return;
+                }
+
+                let html = `
+                    <div class="dropdown-header">
+                        ${currentUser ? `Signed in as <strong>${escapeHTML(currentUser.email)}</strong>` : '<strong>Select a User to Continue</strong>'}
+                    </div>
+                `;
+
+                usersList.forEach(user => {
+                    const isSelected = currentUser && String(currentUser.id) === String(user.id);
+                    const displayName = user.name || user.email;
+                    
+                    html += `
+                        <button type="button" class="dropdown-item user-select-item" data-user-id="${user.id}" style="${isSelected ? 'background: var(--bg-color); color: var(--accent-color); font-weight: 600;' : ''}">
+                            <div class="avatar" style="width: 24px; height: 24px; font-size: 0.7rem; pointer-events: none;">${displayName.charAt(0).toUpperCase()}</div>
+                            <div style="display:flex; flex-direction:column; line-height: 1.2; pointer-events: none;">
+                                <span>${escapeHTML(displayName)}</span>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">${escapeHTML(user.email)}</span>
+                            </div>
+                            ${isSelected ? '<i class="ph ph-check" style="margin-left: auto; pointer-events: none;"></i>' : ''}
+                        </button>
+                    `;
+                });
+
+                // ALWAYS show the Sign Out / Switch User button
+                html += `
+                    <div class="dropdown-divider"></div>
+                    <button
+                        type="button"
+                        class="dropdown-item"
+                        style="color:var(--danger);"
+                        onclick="signOutUser()"
+                    >
+                        <i class="ph ph-sign-out"></i>
+                        Switch User / Sign Out
+                    </button>
+                `;
+
+                dropdown.innerHTML = html;
+
+                // Attach click events AFTER rendering
+                document.querySelectorAll('.user-select-item').forEach(button => {
+                    button.addEventListener('click', async function(e) {
+                        e.stopPropagation();
+
+                        const userId = this.dataset.userId;
+                        console.log("Selected user ID:", userId);
+
+                        const selectedUser = usersList.find(u => String(u.id) === String(userId));
+                        console.log("Selected user:", selectedUser);
+
+                        if (!selectedUser) {
+                            console.error("User not found:", userId);
+                            return;
+                        }
+
+                        selectUser(selectedUser);
+                    });
+                });
+
+                console.log(`Successfully loaded ${usersList.length} user(s)`);
+
+            } catch (err) {
+                console.error("renderUserDropdown failed:", err);
+                dropdown.innerHTML = `
+                    <div class="dropdown-header">
+                        <strong style="color:var(--danger);">Error loading users</strong>
+                        <div style="margin-top:8px;font-size:12px;">${escapeHTML(err.message)}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Save selected user to LocalStorage and reload (Debugging Added)
+        function selectUser(userObj) {
+            console.log("Saving current user:", userObj);
+
+            if (!userObj || !userObj.id) {
+                console.error("Invalid user:", userObj);
+                return;
+            }
+
+            localStorage.setItem(
+                'outreach_current_user',
+                JSON.stringify({
+                    id: userObj.id,
+                    name: userObj.name || '',
+                    email: userObj.email || ''
+                })
+            );
+
+            console.log(
+                "Saved user:",
+                localStorage.getItem('outreach_current_user')
+            );
+
+            window.location.reload();
+        }
+
+        // Sign Out
+        function signOutUser() {
+            localStorage.removeItem('outreach_current_user');
+            window.location.reload();
+        }
+
+        // View when no user is selected
+        function renderNoUserState() {
+            document.getElementById('user-name').textContent = "No user selected";
+            document.getElementById('user-email').textContent = "Click to select a user";
+            document.getElementById('user-avatar-initial').textContent = "?";
+            document.getElementById('hero-greeting').textContent = "Welcome to Outreach Manager";
+
+            const loginPromptHtml = `
+                <div class="empty-state">
+                    <i class="ph ph-users"></i>
+                    <h3>Select a User</h3>
+                    <p>Click the profile menu in the top right to select a user from the database.</p>
+                </div>
+            `;
+
+            document.getElementById('campaigns-list').innerHTML = loginPromptHtml;
+            document.getElementById('conversations-list').innerHTML = loginPromptHtml;
+            
+            document.getElementById('chart-container').innerHTML = `
+                <div class="empty-state">
+                    <i class="ph ph-chart-bar"></i>
+                    <h3>No activity</h3>
+                    <p>Select a user to view statistics.</p>
+                </div>
+            `;
+        }
+
+        // View when user is selected
+        function renderUserProfile() {
+            const nameEl = document.getElementById('user-name');
+            const emailEl = document.getElementById('user-email');
+            const initialEl = document.getElementById('user-avatar-initial');
+            const greetingEl = document.getElementById('hero-greeting');
+            
+            const displayName = currentUser.name || currentUser.email.split('@')[0];
+            
+            emailEl.textContent = currentUser.email;
+            nameEl.textContent = displayName;
+            initialEl.textContent = displayName.charAt(0).toUpperCase();
+            
+            const hour = new Date().getHours();
+            let greeting = "Good evening";
+            if (hour < 12) greeting = "Good morning";
+            else if (hour < 18) greeting = "Good afternoon";
+            
+            greetingEl.textContent = `${greeting}, ${displayName.split(' ')[0]}`;
+        }
+
+        // KPI Stats
+        async function loadDashboardStats() {
+            try {
+                const { count: contactsCount } = await supabaseClient
+                    .from('contacts')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', currentUser.id);
+
+                const { data: campaigns } = await supabaseClient
+                    .from('campaigns')
+                    .select('sent_count, replied_count')
+                    .eq('user_id', currentUser.id);
+
+                let totalSent = 0;
+                let totalReplies = 0;
+
+                if (campaigns) {
+                    campaigns.forEach(c => {
+                        totalSent += (c.sent_count || 0);
+                        totalReplies += (c.replied_count || 0);
+                    });
+                }
+
+                const rate = totalSent > 0 ? ((totalReplies / totalSent) * 100).toFixed(1) : "—";
+
+                document.getElementById('kpi-contacts').textContent = contactsCount || 0;
+                document.getElementById('kpi-sent').textContent = totalSent || 0;
+                document.getElementById('kpi-replies').textContent = totalReplies || 0;
+                document.getElementById('kpi-rate').textContent = rate === "—" ? rate : `${rate}%`;
+
+            } catch (err) {
+                console.error("Failed to load KPIs", err);
+            }
+        }
+
+        // Campaigns
+        async function loadCampaigns() {
+            const container = document.getElementById('campaigns-list');
+            
+            const { data: campaigns, error } = await supabaseClient
+                .from('campaigns')
+                .select('id, name, status, total_recipients, sent_count')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(4);
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            if (!campaigns || campaigns.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="ph ph-megaphone"></i>
+                        <h3>No campaigns yet</h3>
+                        <p>Create your first outreach campaign to get started.</p>
+                        <button class="btn btn-primary" onclick="goTo('campaigns.html')">Create Campaign</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            campaigns.forEach(c => {
+                const progress = c.total_recipients > 0 
+                    ? Math.round((c.sent_count / c.total_recipients) * 100) 
+                    : 0;
+
+                let statusClass = 'status-draft';
+                if (c.status === 'active' || c.status === 'running') statusClass = 'status-active';
+                if (c.status === 'completed') statusClass = 'status-completed';
+
+                const html = `
+                    <div class="list-item" style="cursor:pointer;" onclick="goTo('campaigns.html?id=${c.id}')">
+                        <div class="item-info" style="flex:1;">
+                            <div class="kpi-icon" style="width:36px; height:36px; font-size:1rem;">
+                                <i class="ph ph-envelope-simple"></i>
+                            </div>
+                            <div>
+                                <div class="item-title">${escapeHTML(c.name)}</div>
+                                <div class="item-subtitle">${c.sent_count} / ${c.total_recipients} sent (${progress}%)</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${statusClass}">${escapeHTML(c.status)}</span>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // Conversations (Fixed to use contacts.name)
+        async function loadRecentConversations() {
+            const container = document.getElementById('conversations-list');
+            
+            const { data: threads, error } = await supabaseClient
+                .from('email_threads')
+                .select(`
+                    id, 
+                    subject, 
+                    is_read, 
+                    last_message_at,
+                    contacts (id, name, email)
+                `)
+                .eq('user_id', currentUser.id)
+                .order('last_message_at', { ascending: false })
+                .limit(4);
+
+            if (error) {
+                console.error("Conversations Error:", error);
+                container.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Error loading conversations: ${error.message}</p></div>`;
+                return;
+            }
+
+            if (!threads || threads.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="ph ph-chats"></i>
+                        <h3>No conversations yet</h3>
+                        <p>When contacts reply, they will appear here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            threads.forEach(t => {
+                const contact = t.contacts || {};
+                
+                // Uses 'name', falls back to 'email' if name is empty
+                const contactName = contact.name || contact.email || 'Unknown Contact';
+
+                const time = new Date(t.last_message_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                
+                const dot = !t.is_read ? `<div style="width:8px; height:8px; border-radius:50%; background:var(--accent-color);"></div>` : '';
+                const fw = !t.is_read ? '600' : '500';
+
+                const html = `
+                    <div class="list-item" style="cursor:pointer;" onclick="goTo('viewmails.html?thread=${t.id}')">
+                        <div class="item-info" style="flex:1; overflow:hidden;">
+                            <div class="avatar" style="width:36px; height:36px; font-size:0.8rem; background:var(--text-muted);">
+                                ${contactName.charAt(0).toUpperCase()}
+                            </div>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                <div class="item-title" style="font-weight:${fw}">${escapeHTML(contactName)}</div>
+                                <div class="item-subtitle" style="font-weight:${fw}; text-overflow:ellipsis; overflow:hidden;">${escapeHTML(t.subject || 'No Subject')}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${time}</span>
+                            ${dot}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // Activity Chart (Added error logging)
+        async function loadChartData() {
+            const container = document.getElementById('chart-container');
+            const ctx = document.getElementById('activityChart');
+            
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const { data: logs, error } = await supabaseClient
+                .from('email_logs')
+                .select('created_at, status')
+                .eq('user_id', currentUser.id)
+                .gte('created_at', sevenDaysAgo.toISOString());
+
+            if (error) {
+                console.error("Email Logs Chart Error:", error);
+                container.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Error loading chart: ${error.message}</p></div>`;
+                return;
+            }
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="ph ph-chart-bar"></i>
+                        <h3>No activity yet</h3>
+                        <p>Launch a campaign to see statistics.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const dateMap = {};
+            for(let i=6; i>=0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const ds = d.toLocaleDateString(undefined, { weekday: 'short' });
+                dateMap[ds] = { sent: 0, failed: 0 };
+            }
+
+            logs.forEach(log => {
+                const dateKey = new Date(log.created_at).toLocaleDateString(undefined, { weekday: 'short' });
+                if(dateMap[dateKey]) {
+                    if (log.status === 'sent' || log.status === 'delivered') dateMap[dateKey].sent++;
+                    else if (log.status === 'failed' || log.status === 'bounced') dateMap[dateKey].failed++;
+                }
+            });
+
+            const labels = Object.keys(dateMap);
+            const sentData = labels.map(l => dateMap[l].sent);
+            const failedData = labels.map(l => dateMap[l].failed);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Sent',
+                            data: sentData,
+                            backgroundColor: '#4F46E5',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Failed',
+                            data: failedData,
+                            backgroundColor: '#EF4444',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 6 } }
+                    }
+                }
+            });
+        }
+
+        // Unread Notifications
+        async function loadUnreadCount() {
+            const { count, error } = await supabaseClient
+                .from('email_threads')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', currentUser.id)
+                .eq('is_read', false);
+
+            const badge = document.getElementById('nav-unread-count');
+            if (!error && count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Realtime Updates
+        function setupRealtime() {
+            if (!currentUser) return;
+            
+            supabaseClient
+                .channel('dashboard-updates')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'email_threads', filter: `user_id=eq.${currentUser.id}` }, () => {
+                    loadRecentConversations();
+                    loadUnreadCount();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns', filter: `user_id=eq.${currentUser.id}` }, () => {
+                    loadCampaigns();
+                    loadDashboardStats();
+                })
+                .subscribe();
+        }
+
+        // 3D Hover Effect
+        function setup3DEffect() {
+            const container = document.getElementById('hero-container');
+            const visual = document.getElementById('hero-visual');
+            
+            if(window.innerWidth > 768 && container && visual) {
+                container.addEventListener('mousemove', (e) => {
+                    const rect = container.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    
+                    const rotateX = ((y - centerY) / centerY) * -10;
+                    const rotateY = ((x - centerX) / centerX) * 10;
+                    
+                    visual.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                });
+                
+                container.addEventListener('mouseleave', () => {
+                    visual.style.transform = `perspective(1000px) rotateX(0) rotateY(0)`;
+                });
+            }
+        }
+
+        // Global Search Setup
+        function setupSearch() {
+            const input = document.getElementById('globalSearch');
+            if (input) {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && input.value.trim().length > 0) {
+                        goTo(`contacts.html?search=${encodeURIComponent(input.value.trim())}`);
+                    }
+                });
+            }
+        }
+
+        // Utility: Escape HTML to prevent XSS
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Run
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>

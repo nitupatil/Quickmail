@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inbox & Conversations - Email Outreach Manager</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- DOMPurify for safe HTML email rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --primary-color: #0F172A;
+            --primary-hover: #1E293B;
+            --accent-color: #4F46E5;
+            --accent-hover: #4338CA;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            --sidebar-width: 260px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow: hidden; display: flex; height: 100vh; }
+
+        /* Buttons */
+        .btn { padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: var(--transition); display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; justify-content: center; }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-outline { background: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover:not(:disabled) { background: var(--bg-color); }
+        .btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-ghost { background: transparent; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; }
+        .btn-ghost:hover { background: var(--bg-color); color: var(--text-main); }
+        .btn-danger { color: var(--danger); background: transparent; border: 1px solid transparent; }
+        .btn-danger:hover { background: #FEF2F2; border-color: #FCA5A5; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+        /* Inputs */
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; outline: none; transition: var(--transition); background: var(--surface-color); color: var(--text-main); }
+        .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--surface-color); height: 100vh; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 16px; z-index: 50; flex-shrink: 0; }
+        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; margin-bottom: 40px; padding: 0 12px; color: var(--primary-color); }
+        .logo i { color: var(--accent-color); font-size: 1.5rem; }
+        .nav-links { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: var(--transition); cursor: pointer; }
+        .nav-item:hover { background: var(--bg-color); color: var(--text-main); }
+        .nav-item.active { background: #EEF2FF; color: var(--accent-color); }
+        .nav-item i { font-size: 1.25rem; }
+
+        /* Main Workspace & Three-Column Split */
+        .main-workspace { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg-color); }
+        
+        .header { height: 72px; background: var(--surface-color); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0; }
+        .header-title { font-size: 1.25rem; font-weight: 600; }
+        .header-subtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 2px; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        .inbox-container { flex: 1; display: flex; overflow: hidden; }
+
+        /* Column 2: Thread List */
+        .thread-list-pane { width: 380px; background: var(--surface-color); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .thread-toolbar { padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px; background: #FAFAFA; }
+        .filter-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+        .filter-pill { padding: 4px 10px; border-radius: 16px; font-size: 0.75rem; font-weight: 500; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: var(--transition); }
+        .filter-pill:hover { border-color: var(--accent-color); color: var(--accent-color); }
+        .filter-pill.active { background: #EEF2FF; border-color: #C7D2FE; color: var(--accent-color); font-weight: 600; }
+
+        .thread-scroll { flex: 1; overflow-y: auto; }
+        .thread-item { padding: 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: var(--transition); display: flex; gap: 12px; position: relative; background: var(--surface-color); }
+        .thread-item:hover { background: #F8FAFC; }
+        .thread-item.active { background: #EEF2FF; border-left: 4px solid var(--accent-color); }
+        .thread-item.unread { background: #FFFFFF; font-weight: 600; }
+        .thread-item.unread .thread-subject { color: var(--text-main); font-weight: 600; }
+        
+        .thread-avatar { width: 40px; height: 40px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1rem; flex-shrink: 0; box-shadow: var(--shadow-sm); }
+        
+        .thread-content { flex: 1; min-width: 0; }
+        .thread-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+        .thread-name { font-size: 0.875rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+        .thread-time { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
+        .thread-subject { font-size: 0.85rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        
+        .thread-star { color: #CBD5E1; cursor: pointer; font-size: 1.1rem; transition: var(--transition); background: none; border: none; }
+        .thread-star.starred { color: var(--warning); }
+
+        /* Column 3: Conversation Viewer */
+        .conversation-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-color); overflow: hidden; position: relative; }
+        .conv-header { padding: 20px 24px; background: var(--surface-color); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .conv-subject { font-size: 1.125rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+        .conv-submeta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 8px; align-items: center; }
+        .conv-actions { display: flex; gap: 4px; align-items: center; }
+
+        .conv-scroll { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+        
+        /* Message Cards - NEAT & CLEAN UI */
+        .message-card { border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; transition: var(--transition); border: 1px solid var(--border-color); }
+        
+        /* Incoming messages (White, Blue accent) */
+        .message-card.incoming { background: #FFFFFF; border-left: 4px solid var(--accent-color); }
+        
+        /* Outgoing messages (Light gray, neutral accent) */
+        .message-card.outgoing { background: #F8FAFC; border-left: 4px solid #94A3B8; }
+        
+        .message-header { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid transparent; }
+        .message-card.incoming .message-header { border-bottom-color: #F1F5F9; }
+        .message-card.outgoing .message-header { border-bottom-color: #E2E8F0; }
+        
+        .msg-meta-row { display: flex; align-items: center; gap: 10px; }
+        .msg-icon { font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; }
+        .incoming .msg-icon { background: #EEF2FF; color: var(--accent-color); }
+        .outgoing .msg-icon { background: #E2E8F0; color: #64748B; }
+
+        .msg-meta-text { display: flex; flex-direction: column; gap: 2px; }
+        .msg-sender { font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+        .msg-recipient { font-size: 0.75rem; color: var(--text-muted); }
+        .msg-time { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+        .message-body { padding: 20px 20px 20px 62px; font-size: 0.95rem; line-height: 1.6; color: #1E293B; }
+        .message-body.collapsed { display: none; }
+
+        /* Reply Section */
+        .reply-container { background: var(--surface-color); border-top: 1px solid var(--border-color); padding: 16px 24px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+        .reply-textarea { width: 100%; min-height: 100px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; font-size: 0.875rem; outline: none; resize: vertical; font-family: 'Inter', sans-serif; }
+        .reply-textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .reply-toolbar { display: flex; justify-content: space-between; align-items: center; }
+
+        /* Contact Panel */
+        .contact-panel { width: 280px; background: var(--surface-color); border-left: 1px solid var(--border-color); padding: 20px; display: none; flex-direction: column; gap: 16px; flex-shrink: 0; overflow-y: auto; }
+        .contact-panel.show { display: flex; }
+        .contact-panel h4 { font-size: 0.875rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+
+        /* Empty States */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; color: var(--text-muted); height: 100%; }
+        .empty-state i { font-size: 3rem; margin-bottom: 12px; color: #CBD5E1; }
+        .empty-state h3 { color: var(--text-main); font-size: 1.125rem; margin-bottom: 6px; font-weight: 600; }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { min-width: 300px; padding: 16px 20px; border-radius: var(--radius-md); background: var(--surface-color); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid transparent; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast i { font-size: 1.25rem; }
+        .toast.success i { color: var(--success); }
+        .toast.error i { color: var(--danger); }
+        .toast-content h5 { font-size: 0.875rem; color: var(--text-main); margin-bottom: 2px; }
+        .toast-content p { font-size: 0.75rem; color: var(--text-muted); }
+
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Mobile Adjustments */
+        .mobile-back-btn { display: none; }
+        .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-color); border-top: 1px solid var(--border-color); z-index: 500; padding: 8px 16px; justify-content: space-between; align-items: center; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; }
+        .mobile-nav-item.active { color: var(--accent-color); }
+        .mobile-nav-item i { font-size: 1.5rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .mobile-nav { display: flex; }
+            .main-workspace { padding-bottom: 60px; }
+            .header { padding: 0 16px; height: 60px; }
+            .header-subtitle { display: none; }
+            
+            .thread-list-pane { width: 100%; display: flex; }
+            .conversation-pane { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
+            
+            body.viewing-thread .thread-list-pane { display: none; }
+            body.viewing-thread .conversation-pane { display: flex; }
+            .mobile-back-btn { display: inline-flex; }
+            .contact-panel { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="ph-fill ph-paper-plane-tilt"></i>
+            Outreach
+        </div>
+        <nav class="nav-links">
+            <a onclick="goTo('index.html')" class="nav-item"><i class="ph ph-squares-four"></i> Dashboard</a>
+            <a onclick="goTo('contacts.html')" class="nav-item"><i class="ph ph-users"></i> Contacts</a>
+            <a onclick="goTo('templates.html')" class="nav-item"><i class="ph ph-file-text"></i> Templates</a>
+            <a onclick="goTo('campaigns.html')" class="nav-item"><i class="ph ph-megaphone"></i> Campaigns</a>
+            <a onclick="goTo('emailcreator.html')" class="nav-item"><i class="ph ph-pencil-simple"></i> Compose</a>
+            <a onclick="goTo('viewmails.html')" class="nav-item active"><i class="ph ph-tray"></i> Inbox</a>
+            <a onclick="goTo('analytics.html')" class="nav-item"><i class="ph ph-chart-line-up"></i> Analytics</a>
+            <a onclick="goTo('settings.html')" class="nav-item" style="margin-top: auto;"><i class="ph ph-gear"></i> Settings</a>
+        </nav>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="main-workspace">
+        
+        <!-- Header -->
+        <header class="header">
+            <div>
+                <div class="header-title">Inbox & Conversations</div>
+                <div class="header-subtitle">Manage your conversations, replies and outreach emails.</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="syncGmail()" id="btnSyncGmail" title="Fetch latest emails from Gmail"><i class="ph ph-cloud-arrow-down"><span>Sync Gmail</span></i></button>
+                <button class="btn btn-outline" onclick="loadThreads()" title="Refresh"><i class="ph ph-arrows-clockwise"></i></button>
+                <button class="btn btn-primary" onclick="goTo('emailcreator.html')"><i class="ph ph-pencil-simple"></i> Compose Email</button>
+            </div>
+        </header>
+
+        <!-- Three-Section Layout -->
+        <div class="inbox-container">
+            
+            <!-- Column 2: Thread List -->
+            <section class="thread-list-pane">
+                <div class="thread-toolbar">
+                    <div style="position: relative;">
+                        <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 12px; color: var(--text-muted);"></i>
+                        <input type="text" class="form-control" id="searchThreadsInput" placeholder="Search emails..." style="padding-left: 36px;" oninput="searchThreads()">
+                    </div>
+                    
+                    <div class="filter-pills">
+                        <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+                        <button class="filter-pill" onclick="setFilter('inbox', this)">Inbox</button>
+                        <button class="filter-pill" onclick="setFilter('sent', this)">Sent</button>
+                        <button class="filter-pill" onclick="setFilter('unread', this)">Unread</button>
+                        <button class="filter-pill" onclick="setFilter('starred', this)">Starred</button>
+                    </div>
+                </div>
+
+                <div class="thread-scroll" id="threadListContainer">
+                    <div class="empty-state" style="padding: 40px;">
+                        <i class="ph ph-spinner spinner" style="font-size: 2rem; color: var(--accent-color);"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 3: Conversation Viewer -->
+            <section class="conversation-pane" id="conversationPane">
+                
+                <!-- Empty state when no thread is selected -->
+                <div class="empty-state" id="noThreadSelected">
+                    <i class="ph ph-chat-centered-text"></i>
+                    <h3>Select a conversation</h3>
+                    <p>Choose an email thread from the left to read and reply.</p>
+                </div>
+
+                <!-- Active Conversation View -->
+                <div id="activeConversation" style="display: none; flex: 1; flex-direction: column; overflow: hidden; height: 100%;">
+                    
+                    <!-- Conversation Header -->
+                    <div class="conv-header">
+                        <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                            <button class="btn btn-outline btn-sm mobile-back-btn" onclick="closeMobileThread()"><i class="ph ph-arrow-left"></i></button>
+                            <div style="overflow: hidden;">
+                                <div class="conv-subject" id="convSubject">Subject of conversation</div>
+                                <div class="conv-submeta">
+                                    <span id="convContactName" style="font-weight: 600; color: var(--text-main);">Name</span>
+                                    <span id="convContactEmail">&lt;email@example.com&gt;</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="conv-actions">
+                            <button class="btn btn-ghost" id="btnConvStar" onclick="toggleCurrentStar()" title="Star Thread"><i class="ph ph-star"></i></button>
+                            <button class="btn btn-ghost" id="btnConvUnread" onclick="toggleCurrentUnread()" title="Mark Unread"><i class="ph ph-envelope-simple"></i></button>
+                            <button class="btn btn-ghost" onclick="toggleContactPanel()" title="Contact Details"><i class="ph ph-user"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Messages Scroll Area -->
+                    <div class="conv-scroll" id="messageScrollArea">
+                        <!-- Rendered messages go here -->
+                    </div>
+
+                    <!-- Reply Composer -->
+                    <div class="reply-container" id="replyComposerBox">
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+                            <span>To: <strong id="replyToDisplay" style="color: var(--text-main);">...</strong></span>
+                            <span id="campaignBadgeContainer"></span>
+                        </div>
+                        <textarea class="reply-textarea" id="replyTextarea" placeholder="Write your reply..."></textarea>
+                        <div class="reply-toolbar">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Press Send to dispatch via connected Apps Script.</span>
+                            <button class="btn btn-primary" id="btnSendReply" onclick="sendReply()">
+                                <i class="ph ph-paper-plane-tilt"></i> Send Reply
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- Right Column: Contact Details Panel -->
+            <aside class="contact-panel" id="contactPanel">
+                <h4>Contact Details</h4>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 600;">Name</span>
+                    <strong id="panelContactName" style="font-size: 0.9rem;">-</strong>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 600;">Email</span>
+                    <span id="panelContactEmail" style="font-size: 0.85rem; word-break: break-all;">-</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 600;">Company</span>
+                    <span id="panelContactCompany" style="font-size: 0.85rem;">-</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 600;">Location</span>
+                    <span id="panelContactLocation" style="font-size: 0.85rem;">-</span>
+                </div>
+                <div id="panelCampaignSection" style="display: none; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; font-weight: 600; margin-bottom: 4px;">Campaign</span>
+                    <span id="panelCampaignName" style="font-size: 0.85rem; font-weight: 500; color: var(--accent-color);">-</span>
+                </div>
+                <div style="margin-top: auto;">
+                    <button class="btn btn-outline btn-sm" id="btnViewContactProfile" style="width: 100%;" onclick="openContactProfile()">View Contact Profile</button>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <a onclick="goTo('index.html')" class="mobile-nav-item"><i class="ph ph-squares-four"></i><span>Home</span></a>
+        <a onclick="goTo('contacts.html')" class="mobile-nav-item"><i class="ph ph-users"></i><span>Contacts</span></a>
+        <a onclick="goTo('viewmails.html')" class="mobile-nav-item active"><i class="ph ph-tray"></i><span>Inbox</span></a>
+        <a onclick="goTo('campaigns.html')" class="mobile-nav-item"><i class="ph ph-megaphone"></i><span>Campaigns</span></a>
+        <a onclick="goTo('settings.html')" class="mobile-nav-item"><i class="ph ph-gear"></i><span>Settings</span></a>
+    </nav>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = "https://ewclfynaxnufbjazkame.supabase.co".trim();
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Y2xmeW5heG51ZmJqYXprYW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDI1MTQsImV4cCI6MjEwMjQ3ODUxNH0.zEF3YP4dwrLjrfbMBxVuR89c0ZW23Rkz8tYAlxDOZ6I".trim();
+
+        let supabaseClient;
+        let currentUser = null;
+        let activeAppScriptUrl = null;
+
+        let threads = [];
+        let contactsMap = new Map();
+        let campaignsMap = new Map();
+        let selectedThreadId = null;
+        let currentFilter = 'all';
+
+        // Dynamic Avatar Colors
+        const avatarColors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#6366F1'];
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        function goTo(page) { window.location.href = page; }
+
+        async function init() {
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                const { data: { user }, error: authErr } = await supabaseClient.auth.getUser();
+                if (authErr || !user) {
+                    const savedUser = localStorage.getItem('outreach_current_user');
+                    if (savedUser) {
+                        currentUser = JSON.parse(savedUser);
+                    } else {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                } else {
+                    currentUser = user;
+                }
+
+                await Promise.all([
+                    loadEmailServiceApi(),
+                    loadContactsAndCampaigns()
+                ]);
+                
+                await loadThreads();
+
+            } catch (err) {
+                console.error("Initialization failed:", err);
+                showToast("Failed to initialize inbox", "error");
+            }
+        }
+
+        async function loadEmailServiceApi() {
+            try {
+                const { data } = await supabaseClient
+                    .from('email_service_config')
+                    .select('appscript_api')
+                    .eq('status', 'active')
+                    .limit(1);
+                
+                if (data && data.length > 0) {
+                    activeAppScriptUrl = data[0].appscript_api;
+                }
+            } catch (err) {
+                console.error("Failed to load Apps Script config:", err);
+            }
+        }
+
+        async function loadContactsAndCampaigns() {
+            try {
+                const { data: contacts } = await supabaseClient
+                    .from('contacts')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                
+                if (contacts) {
+                    contacts.forEach(c => contactsMap.set(c.id, c));
+                }
+
+                const { data: campaigns } = await supabaseClient
+                    .from('campaigns')
+                    .select('id, name, subject, html_body, body_html, text_body, body_text')
+                    .eq('user_id', currentUser.id);
+
+                if (campaigns) {
+                    campaigns.forEach(cp => campaignsMap.set(cp.id, cp));
+                }
+            } catch (err) {
+                console.error("Error loading auxiliary data:", err);
+            }
+        }
+
+        async function loadThreads() {
+            try {
+                let loadedThreads = [];
+
+                // 1. Load actual email_threads (synced from Gmail)
+                const { data: dbThreads } = await supabaseClient
+                    .from('email_threads')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+
+                if (dbThreads) {
+                    loadedThreads = [...dbThreads];
+                }
+
+                // 2. Load sent outreach emails from campaign_recipients 
+                const { data: sentRecs } = await supabaseClient
+                    .from('campaign_recipients')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(150);
+
+                if (sentRecs) {
+                    sentRecs.forEach(r => {
+                        const camp = campaignsMap.get(r.campaign_id);
+                        if (camp) {
+                            loadedThreads.push({
+                                id: `outreach_${r.id}`, // Custom pseudo-ID
+                                is_outreach: true,      // Flag to identify it's an injected sent log
+                                contact_id: r.contact_id,
+                                email: r.email,
+                                subject: camp.subject,
+                                body_html: camp.body_html || camp.html_body,
+                                body_text: camp.body_text || camp.text_body,
+                                last_message_at: r.sent_at || r.created_at,
+                                created_at: r.created_at,
+                                is_read: true,
+                                is_starred: false,
+                                status: r.status // 'pending', 'sent', 'failed'
+                            });
+                        }
+                    });
+                }
+                
+                // 3. Fallback check for older "email_logs" table if it exists
+                try {
+                    const { data: legacyLogs } = await supabaseClient
+                        .from('email_logs')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(50);
+                    
+                    if (legacyLogs) {
+                        legacyLogs.forEach(l => {
+                            loadedThreads.push({
+                                id: `legacy_${l.id}`,
+                                is_outreach: true,
+                                contact_id: l.contact_id,
+                                email: l.recipient_email,
+                                subject: l.subject,
+                                body_text: "(Email content not available in legacy logs)",
+                                last_message_at: l.created_at,
+                                created_at: l.created_at,
+                                is_read: true,
+                                is_starred: false,
+                                status: l.status
+                            });
+                        });
+                    }
+                } catch(err) { /* Safely ignore if table doesn't exist */ }
+
+                // Combine and Sort Chronologically
+                loadedThreads.sort((a, b) => {
+                    const dateA = new Date(a.last_message_at || a.created_at || 0);
+                    const dateB = new Date(b.last_message_at || b.created_at || 0);
+                    return dateB - dateA;
+                });
+
+                threads = loadedThreads;
+                filterThreads();
+
+                if (selectedThreadId) {
+                    const exists = threads.find(t => t.id === selectedThreadId);
+                    if (exists) {
+                        selectThread(selectedThreadId, false);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load email threads:", err);
+                showToast("Unable to load email threads", "error");
+            }
+        }
+
+        function setFilter(filterType, btnEl) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            btnEl.classList.add('active');
+            filterThreads();
+        }
+
+        function searchThreads() {
+            filterThreads();
+        }
+
+        function filterThreads() {
+            const query = document.getElementById('searchThreadsInput').value.toLowerCase();
+            
+            const filtered = threads.filter(t => {
+                const contact = t.contact_id ? contactsMap.get(t.contact_id) : null;
+                const contactName = contact ? (contact.name || '').toLowerCase() : '';
+                const contactEmail = t.is_outreach ? (t.email || '').toLowerCase() : (contact ? (contact.email || '').toLowerCase() : '');
+                const subject = (t.subject || '').toLowerCase();
+
+                const matchQuery = subject.includes(query) || contactName.includes(query) || contactEmail.includes(query);
+                if (!matchQuery) return false;
+
+                // STRICT Inbox vs Sent Separation
+                if (currentFilter === 'inbox') {
+                    // Inbox = Incoming synced threads (excludes outreach logs)
+                    return !t.is_outreach;
+                } else if (currentFilter === 'sent') {
+                    // Sent = Our injected outreach campaigns & direct sends (outbox)
+                    return t.is_outreach;
+                } else if (currentFilter === 'unread') {
+                    return t.is_read === false;
+                } else if (currentFilter === 'starred') {
+                    return t.is_starred === true;
+                }
+                return true;
+            });
+
+            renderThreadList(filtered);
+        }
+
+        function renderThreadList(list) {
+            const container = document.getElementById('threadListContainer');
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 40px;">
+                        <i class="ph ph-tray"></i>
+                        <h3>No emails found</h3>
+                        <p>No conversations match this filter.</p>
+                        <button class="btn btn-outline btn-sm" onclick="syncGmail()" style="margin-top: 12px;"><i class="ph ph-cloud-arrow-down"></i> Sync Gmail</button>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(t => {
+                const contact = t.contact_id ? contactsMap.get(t.contact_id) : null;
+                
+                // Smart Name/Email resolution
+                let displayName = "Unknown";
+                if (contact && contact.name) displayName = contact.name;
+                else if (contact && contact.email) displayName = contact.email.split('@')[0];
+                else if (t.is_outreach && t.email) displayName = t.email.split('@')[0];
+                else if (t.subject) displayName = "No Contact";
+                
+                const displayEmail = t.is_outreach ? t.email : (contact ? contact.email : '');
+                
+                // Dynamic Avatar Color
+                const initial = displayName.charAt(0).toUpperCase();
+                const colorIndex = initial.charCodeAt(0) % avatarColors.length;
+                const avatarColor = avatarColors[colorIndex];
+
+                const isUnread = t.is_read === false;
+                const isStarred = t.is_starred === true;
+                const isActive = t.id === selectedThreadId;
+                
+                // Direction Icon and Status mapping
+                let directionIcon = '';
+                let timeStr = t.last_message_at ? formatTime(t.last_message_at) : '';
+                
+                if (t.is_outreach) {
+                    if (t.status === 'pending' || t.status === 'running') {
+                        directionIcon = `<i class="ph ph-clock" style="color:var(--warning); margin-right:4px;" title="Queued"></i>`;
+                        timeStr = 'Queued';
+                    } else if (t.status === 'failed') {
+                        directionIcon = `<i class="ph ph-warning-circle" style="color:var(--danger); margin-right:4px;" title="Failed"></i>`;
+                        timeStr = 'Failed';
+                    } else {
+                        directionIcon = `<i class="ph ph-arrow-up-right" style="color:#94A3B8; margin-right:4px;" title="Sent"></i>`;
+                    }
+                }
+
+                return `
+                    <div class="thread-item ${isUnread ? 'unread' : ''} ${isActive ? 'active' : ''}" onclick="selectThread('${t.id}')">
+                        <button class="thread-star ${isStarred ? 'starred' : ''}" onclick="event.stopPropagation(); toggleStar('${t.id}')" title="Star Thread">
+                            <i class="ph ${isStarred ? 'ph-star-fill' : 'ph-star'}"></i>
+                        </button>
+                        <div class="thread-avatar" style="background: ${avatarColor};">${initial}</div>
+                        <div class="thread-content">
+                            <div class="thread-top-row">
+                                <span class="thread-name">${escapeHtml(displayName)}</span>
+                                <span class="thread-time">${timeStr}</span>
+                            </div>
+                            <div class="thread-subject">${directionIcon}${escapeHtml(t.subject || '(No Subject)')}</div>
+                            <div class="thread-snippet">${escapeHtml(displayEmail)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // THREAD SELECTION & CONVERSATION VIEWER
+        // ==========================================
+        async function selectThread(threadId, updateMobileView = true) {
+            selectedThreadId = threadId;
+            
+            document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
+            event?.currentTarget?.classList.add('active');
+
+            if (updateMobileView) {
+                document.body.classList.add('viewing-thread');
+            }
+
+            const thread = threads.find(t => t.id === threadId);
+            if (thread && thread.is_read === false) {
+                markThreadRead(threadId, true);
+            }
+
+            document.getElementById('noThreadSelected').style.display = 'none';
+            document.getElementById('activeConversation').style.display = 'flex';
+            
+            const contact = thread && thread.contact_id ? contactsMap.get(thread.contact_id) : null;
+            let cName = "Unknown Sender";
+            let cEmail = thread ? (thread.is_outreach ? thread.email : (contact ? contact.email : '')) : '';
+
+            if (contact) {
+                cName = contact.name || contact.email.split('@')[0];
+            } else if (cEmail) {
+                cName = cEmail.split('@')[0];
+            }
+
+            document.getElementById('convContactName').textContent = cName;
+            document.getElementById('convContactEmail').textContent = cEmail ? `<${cEmail}>` : '';
+            document.getElementById('replyToDisplay').textContent = cEmail || '(Cannot reply: No email)';
+
+            const starBtn = document.getElementById('btnConvStar');
+            starBtn.innerHTML = thread && thread.is_starred ? '<i class="ph-fill ph-star" style="color: var(--warning);"></i>' : '<i class="ph ph-star"></i>';
+
+            updateContactPanel(contact, thread);
+            
+            // Render logic
+            if (thread && thread.is_outreach) {
+                // Instantly render the parsed outreach email
+                const resolvedSubj = resolveVariables(thread.subject, contact);
+                const resolvedHtml = resolveVariables(thread.body_html, contact);
+                const resolvedText = resolveVariables(thread.body_text, contact);
+
+                document.getElementById('convSubject').textContent = resolvedSubj || '(No Subject)';
+                
+                // Hide reply box for read-only outreach logs
+                document.getElementById('replyComposerBox').style.display = 'none';
+
+                renderMessages([{
+                    id: thread.id,
+                    direction: 'outgoing', // Ensures gray 'Sent' styling
+                    from_email: currentUser.email || 'You',
+                    to_email: thread.email,
+                    sent_at: thread.last_message_at,
+                    body_html: resolvedHtml,
+                    body_text: resolvedText
+                }]);
+            } else {
+                document.getElementById('convSubject').textContent = thread ? (thread.subject || '(No Subject)') : 'Conversation';
+                document.getElementById('replyComposerBox').style.display = 'flex'; // Enable reply for real threads
+                await loadThreadMessages(threadId);
+            }
+        }
+
+        function closeMobileThread() {
+            document.body.classList.remove('viewing-thread');
+            selectedThreadId = null;
+        }
+
+        async function loadThreadMessages(threadId) {
+            const scrollArea = document.getElementById('messageScrollArea');
+            scrollArea.innerHTML = `<div style="text-align: center; padding: 40px;"><i class="ph ph-spinner spinner" style="font-size: 2rem; color: var(--accent-color);"></i></div>`;
+
+            try {
+                const { data: messages, error } = await supabaseClient
+                    .from('email_messages')
+                    .select('*')
+                    .eq('thread_id', threadId)
+                    .order('sent_at', { ascending: true, nullsFirst: false })
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                renderMessages(messages || []);
+            } catch (err) {
+                console.error("Failed to load messages:", err);
+                scrollArea.innerHTML = `<div class="empty-state"><h3>Unable to load messages</h3><p>${escapeHtml(err.message)}</p></div>`;
+            }
+        }
+
+        function renderMessages(messages) {
+            const scrollArea = document.getElementById('messageScrollArea');
+            if (messages.length === 0) {
+                scrollArea.innerHTML = `<div class="empty-state"><h3>No message content found.</h3></div>`;
+                return;
+            }
+
+            const totalMsgs = messages.length;
+
+            scrollArea.innerHTML = messages.map((m, index) => {
+                
+                // Smart detection for Outgoing vs Incoming if "direction" column is unreliable
+                const userEmail = currentUser.email ? currentUser.email.toLowerCase() : '';
+                const fromEmail = (m.from_email || '').toLowerCase();
+                
+                let isOutgoing = false;
+                if (m.direction === 'outgoing' || m.direction === 'sent') isOutgoing = true;
+                if (!isOutgoing && userEmail && fromEmail && fromEmail.includes(userEmail)) isOutgoing = true;
+                
+                const cardClass = isOutgoing ? 'outgoing' : 'incoming';
+                const directionIcon = isOutgoing ? '<i class="ph ph-arrow-up-right"></i>' : '<i class="ph ph-arrow-down-left"></i>';
+                
+                const senderName = isOutgoing ? 'You' : (m.from_email || 'Unknown Sender');
+                const recipientName = m.to_email || 'Recipient';
+                const dateStr = m.sent_at || m.received_at || m.created_at;
+                const formattedDate = dateStr ? new Date(dateStr).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+                
+                const isLatest = index === totalMsgs - 1;
+                const collapsedClass = isLatest ? '' : 'collapsed';
+
+                // Safe Body Rendering
+                let safeHtml = '';
+                if (m.body_html) {
+                    safeHtml = window.DOMPurify ? DOMPurify.sanitize(m.body_html, { USE_PROFILES: { html: true } }) : escapeHtml(m.body_html);
+                    if (!safeHtml.trim() && m.body_text) {
+                        safeHtml = escapeHtml(m.body_text).replace(/\n/g, '<br>');
+                    }
+                } else if (m.body_text) {
+                    safeHtml = escapeHtml(m.body_text).replace(/\n/g, '<br>');
+                } else {
+                    safeHtml = '<em style="color:#94A3B8;">(No message body provided)</em>';
+                }
+
+                return `
+                    <div class="message-card ${cardClass}" id="msg-${m.id}">
+                        <div class="message-header" onclick="toggleMessageCollapse('${m.id}')">
+                            <div class="msg-meta-row">
+                                <div class="msg-icon">${directionIcon}</div>
+                                <div class="msg-meta-text">
+                                    <div class="msg-sender">${escapeHtml(senderName)}</div>
+                                    <div class="msg-recipient">To: ${escapeHtml(recipientName)}</div>
+                                </div>
+                            </div>
+                            <div class="msg-time">${formattedDate}</div>
+                        </div>
+                        <div class="message-body ${collapsedClass}" id="msg-body-${m.id}">
+                            <div style="font-family: inherit;">${safeHtml}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+        }
+
+        function toggleMessageCollapse(msgId) {
+            const body = document.getElementById(`msg-body-${msgId}`);
+            if (body) {
+                body.classList.toggle('collapsed');
+            }
+        }
+
+        function resolveVariables(text, contact) {
+            if (!text || !contact) return text || '';
+            const nameParts = (contact.name || '').split(' ');
+            const first = nameParts[0] || '';
+            const last = nameParts.slice(1).join(' ') || '';
+            return text.replace(/{{name}}/gi, contact.name || '')
+                       .replace(/{{first_name}}/gi, first)
+                       .replace(/{{last_name}}/gi, last)
+                       .replace(/{{email}}/gi, contact.email || '')
+                       .replace(/{{company}}/gi, contact.company || '')
+                       .replace(/{{location}}/gi, contact.location || '');
+        }
+
+        // ==========================================
+        // CONTACT & CAMPAIGN PANEL
+        // ==========================================
+        function updateContactPanel(contact, thread) {
+            if (!contact) {
+                document.getElementById('panelContactName').textContent = 'Unknown';
+                document.getElementById('panelContactEmail').textContent = thread && thread.is_outreach ? thread.email : '-';
+                document.getElementById('panelContactCompany').textContent = '-';
+                document.getElementById('panelContactLocation').textContent = '-';
+                document.getElementById('panelCampaignSection').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('panelContactName').textContent = contact.name || 'Unnamed';
+            document.getElementById('panelContactEmail').textContent = contact.email || '-';
+            document.getElementById('panelContactCompany').textContent = contact.company || '-';
+            document.getElementById('panelContactLocation').textContent = contact.location || '-';
+
+            checkCampaignAssociation(contact.id);
+        }
+
+        async function checkCampaignAssociation(contactId) {
+            try {
+                const { data } = await supabaseClient
+                    .from('campaign_recipients')
+                    .select('campaign_id')
+                    .eq('contact_id', contactId)
+                    .limit(1);
+
+                const campSec = document.getElementById('panelCampaignSection');
+                if (data && data.length > 0) {
+                    const camp = campaignsMap.get(data[0].campaign_id);
+                    if (camp) {
+                        document.getElementById('panelCampaignName').textContent = camp.name;
+                        campSec.style.display = 'block';
+                        return;
+                    }
+                }
+                campSec.style.display = 'none';
+            } catch (err) {
+                console.error("Error loading campaign association:", err);
+            }
+        }
+
+        function toggleContactPanel() {
+            const panel = document.getElementById('contactPanel');
+            panel.classList.toggle('show');
+        }
+
+        function openContactProfile() {
+            const thread = threads.find(t => t.id === selectedThreadId);
+            if (thread && thread.contact_id) {
+                window.location.href = `contacts.html?contact=${thread.contact_id}`;
+            } else {
+                showToast("No associated contact profile found.", "warning");
+            }
+        }
+
+        // ==========================================
+        // THREAD ACTIONS
+        // ==========================================
+        async function markThreadRead(threadId, silent = false) {
+            const t = threads.find(item => item.id === threadId);
+            if (!t || t.is_outreach) return; // Fake logs are always read
+
+            try {
+                await supabaseClient
+                    .from('email_threads')
+                    .update({ is_read: true })
+                    .eq('id', threadId)
+                    .eq('user_id', currentUser.id);
+
+                t.is_read = true;
+                renderThreadList(threads);
+                if (!silent) showToast("Email marked as read.", "success");
+            } catch (err) {
+                console.error("Mark read error:", err);
+            }
+        }
+
+        async function toggleCurrentUnread() {
+            if (!selectedThreadId) return;
+            const t = threads.find(item => item.id === selectedThreadId);
+            if (!t || t.is_outreach) return;
+
+            const newReadState = !t.is_read;
+            try {
+                await supabaseClient
+                    .from('email_threads')
+                    .update({ is_read: newReadState })
+                    .eq('id', selectedThreadId)
+                    .eq('user_id', currentUser.id);
+
+                t.is_read = newReadState;
+                renderThreadList(threads);
+                showToast(newReadState ? "Marked as read." : "Marked as unread.", "success");
+            } catch (err) {
+                console.error("Toggle unread error:", err);
+                showToast("Failed to update status.", "error");
+            }
+        }
+
+        async function toggleStar(threadId) {
+            const t = threads.find(item => item.id === threadId);
+            if (!t || t.is_outreach) {
+                showToast("Cannot star an outreach log.", "warning");
+                return;
+            }
+
+            const newStarState = !t.is_starred;
+            try {
+                await supabaseClient
+                    .from('email_threads')
+                    .update({ is_starred: newStarState })
+                    .eq('id', threadId)
+                    .eq('user_id', currentUser.id);
+
+                t.is_starred = newStarState;
+                renderThreadList(threads);
+
+                if (threadId === selectedThreadId) {
+                    const starBtn = document.getElementById('btnConvStar');
+                    starBtn.innerHTML = newStarState ? '<i class="ph-fill ph-star" style="color: var(--warning);"></i>' : '<i class="ph ph-star"></i>';
+                }
+            } catch (err) {
+                console.error("Star toggle error:", err);
+                showToast("Failed to update star.", "error");
+            }
+        }
+
+        function toggleCurrentStar() {
+            if (selectedThreadId) toggleStar(selectedThreadId);
+        }
+
+        // ==========================================
+        // REPLY SYSTEM
+        // ==========================================
+        async function sendReply() {
+            const text = document.getElementById('replyTextarea').value.trim();
+            if (!text) {
+                showToast("Please enter a reply message.", "warning");
+                return;
+            }
+
+            if (!activeAppScriptUrl) {
+                showToast("Google Apps Script API URL is not configured.", "error");
+                return;
+            }
+
+            const thread = threads.find(t => t.id === selectedThreadId);
+            if (!thread || thread.is_outreach) return;
+
+            const contact = thread.contact_id ? contactsMap.get(thread.contact_id) : null;
+            const recipientEmail = contact ? contact.email : document.getElementById('replyToDisplay').textContent;
+
+            if (!recipientEmail || recipientEmail === '(Cannot reply: No email)') {
+                showToast("No valid recipient email found.", "error");
+                return;
+            }
+
+            const btn = document.getElementById('btnSendReply');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner spinner"></i> Sending...';
+
+            const htmlBody = `<div style="font-family:sans-serif;">${text.replace(/\n/g, '<br>')}</div>`;
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append("action", "send_reply");
+                formData.append("thread_id", selectedThreadId);
+                formData.append("to_email", recipientEmail);
+                formData.append("subject", `Re: ${thread.subject || ''}`);
+                formData.append("body_html", htmlBody);
+                formData.append("body_text", text);
+
+                // No-cors fire
+                fetch(activeAppScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+
+                // Optimistic UI Update instantly
+                const scrollArea = document.getElementById('messageScrollArea');
+                const safeHtml = window.DOMPurify ? DOMPurify.sanitize(htmlBody) : escapeHtml(htmlBody);
+                
+                const msgHtml = `
+                    <div class="message-card outgoing">
+                        <div class="message-header">
+                            <div class="msg-meta-row">
+                                <div class="msg-icon"><i class="ph ph-arrow-up-right"></i></div>
+                                <div class="msg-meta-text">
+                                    <div class="msg-sender">You</div>
+                                    <div class="msg-recipient">To: ${escapeHtml(recipientEmail)}</div>
+                                </div>
+                            </div>
+                            <div class="msg-time">Just now</div>
+                        </div>
+                        <div class="message-body">
+                            <div style="font-family: inherit;">${safeHtml}</div>
+                        </div>
+                    </div>
+                `;
+                scrollArea.insertAdjacentHTML('beforeend', msgHtml);
+                scrollArea.scrollTop = scrollArea.scrollHeight;
+
+                showToast("Reply sent successfully!", "success");
+                document.getElementById('replyTextarea').value = '';
+
+            } catch (err) {
+                console.error("Failed to send reply:", err);
+                showToast("Unable to send reply. Please check connection.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Send Reply';
+            }
+        }
+
+        // ==========================================
+        // GMAIL SYNC
+        // ==========================================
+        async function syncGmail() {
+            if (!activeAppScriptUrl) {
+                showToast("Google Apps Script URL not found in configuration.", "error");
+                return;
+            }
+
+            const btn = document.getElementById('btnSyncGmail');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner spinner"></i><span>Syncing...</span>';
+            showToast("Synchronizing with Gmail...", "success");
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append("action", "sync_gmail");
+
+                await fetch(activeAppScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+
+                showToast("Gmail synchronized successfully!", "success");
+                await loadThreads();
+            } catch (err) {
+                console.error("Gmail sync error:", err);
+                showToast("Gmail synchronization failed.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-cloud-arrow-down"><span>Sync Gmail</span></i>';
+            }
+        }
+
+        // ==========================================
+        // UTILITIES & HELPERS
+        // ==========================================
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            
+            if (isToday) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'check-circle' : 'warning-circle';
+
+            toast.innerHTML = `
+                <i class="ph ph-${icon}"></i>
+                <div class="toast-content">
+                    <h5>${type.charAt(0).toUpperCase() + type.slice(1)}</h5>
+                    <p>${escapeHtml(message)}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
