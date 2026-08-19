@@ -63,6 +63,8 @@
         .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.875rem; outline: none; transition: var(--transition); background: var(--surface-color); color: var(--text-main); }
         .form-control:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
         select.form-control { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+        
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.875rem; color: var(--text-main); }
 
         /* Sidebar */
         .sidebar { width: var(--sidebar-width); background: var(--surface-color); height: 100vh; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 16px; z-index: 50; flex-shrink: 0; }
@@ -391,6 +393,22 @@
                         <label class="form-label">Campaign Name</label>
                         <input type="text" class="form-control" id="newCampName" placeholder="e.g. Q3 Outreach - Tech Leads">
                     </div>
+
+                    <!-- NEW DELAY INPUTS -->
+                    <div class="form-group" style="margin-top: 24px;">
+                        <label class="form-label">Delay Between Emails</label>
+                        <div style="display: flex; gap: 12px; align-items: center; max-width: 300px;">
+                            <div style="flex: 1;">
+                                <input type="number" class="form-control" id="delayMin" placeholder="0" min="0" value="0">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Minutes</span>
+                            </div>
+                            <div style="font-weight: 600; color: var(--text-muted); margin-bottom: 18px;">:</div>
+                            <div style="flex: 1;">
+                                <input type="number" class="form-control" id="delaySec" placeholder="0" min="0" max="59" value="0">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Seconds</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- STEP 2: Template -->
@@ -441,6 +459,10 @@
                         <div class="review-item">
                             <span class="review-label">Total Recipients</span>
                             <span class="review-value" id="revCampRecipients">...</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Delay Between Emails</span>
+                            <span class="review-value" id="revCampDelay">...</span>
                         </div>
                         <div class="review-item" style="grid-column: 1 / -1;">
                             <span class="review-label">Template</span>
@@ -777,6 +799,8 @@
             selectedTemplateId = null;
             selectedContactIds.clear();
             document.getElementById('newCampName').value = '';
+            document.getElementById('delayMin').value = '0';
+            document.getElementById('delaySec').value = '0';
             
             updateWizardUI();
             
@@ -925,10 +949,14 @@
 
         function prepareReviewStep() {
             const campName = document.getElementById('newCampName').value.trim();
+            const delayMin = parseInt(document.getElementById('delayMin').value) || 0;
+            const delaySec = parseInt(document.getElementById('delaySec').value) || 0;
+            
             const tpl = allTemplates.find(t => t.id === selectedTemplateId);
             
             document.getElementById('revCampName').textContent = campName;
             document.getElementById('revCampRecipients').textContent = selectedContactIds.size;
+            document.getElementById('revCampDelay').textContent = `${delayMin}m ${delaySec}s`;
             document.getElementById('revCampTemplate').innerHTML = `<strong>${escapeHTML(tpl.name)}</strong><br><span style="font-size:0.8rem;color:var(--text-muted);">Subj: ${escapeHTML(tpl.subject)}</span>`;
         }
 
@@ -959,6 +987,10 @@
 
             try {
                 const campName = document.getElementById('newCampName').value.trim();
+                const delayMin = parseInt(document.getElementById('delayMin').value) || 0;
+                const delaySec = parseInt(document.getElementById('delaySec').value) || 0;
+                const totalDelaySeconds = (delayMin * 60) + delaySec;
+
                 const campData = {
                     user_id: currentUser.id,
                     name: campName,
@@ -967,7 +999,8 @@
                     total_recipients: selectedContactIds.size,
                     sent_count: 0,
                     failed_count: 0,
-                    replied_count: 0
+                    replied_count: 0,
+                    delay_seconds: totalDelaySeconds
                 };
 
                 const { data: campaign, error: campErr } = await supabaseClient.from('campaigns').insert([campData]).select().single();
