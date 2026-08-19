@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Templates - Email Outreach Manager</title>
     
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -182,11 +179,35 @@
             .content-area { padding: 16px; }
             .template-grid { grid-template-columns: 1fr; }
         }
+
+        /* --- NEW STYLES: Split Layout for Create/Edit Modal --- */
+        .modal-split-body { padding: 0; display: flex; flex-direction: row; height: 65vh; overflow: hidden; }
+        .modal-editor-panel { flex: 2; padding: 24px; overflow-y: auto; border-right: 1px solid var(--border-color); background: var(--surface-color); }
+        .modal-preview-panel { flex: 1; background: var(--bg-color); display: flex; flex-direction: column; min-width: 320px; }
+
+        /* Panel Tabs */
+        .panel-tabs { display: flex; border-bottom: 1px solid var(--border-color); background: var(--surface-color); }
+        .panel-tab { flex: 1; text-align: center; padding: 12px; font-size: 0.875rem; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: var(--transition); }
+        .panel-tab.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+        .panel-content.active { display: block; }
+
+        /* Variable Grid */
+        .var-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .var-btn { padding: 8px; background: var(--bg-color); border: 1px dashed var(--border-color); border-radius: 6px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; text-align: left; transition: var(--transition); }
+        .var-btn:hover { background: #EEF2FF; border-color: var(--accent-color); color: var(--accent-color); }
+
+        /* Live Preview Frame */
+        .preview-frame { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; height: 100%; box-shadow: var(--shadow-sm); }
+        .preview-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #F9FAFB; }
+        .preview-body-frame { padding: 20px; font-size: 0.95rem; line-height: 1.6; overflow-y: auto; flex: 1; }
+
+        /* Raw HTML View */
+        .editor-html-view { width: 100%; min-height: 250px; padding: 16px; font-family: monospace; font-size: 0.875rem; line-height: 1.5; outline: none; resize: vertical; border: none; background: #F8FAFC; color: #334155; display: none; }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar (Desktop) -->
     <aside class="sidebar">
         <div class="logo">
             <i class="ph-fill ph-paper-plane-tilt"></i>
@@ -204,10 +225,8 @@
         </nav>
     </aside>
 
-    <!-- Main Workspace -->
     <div class="main-workspace">
         
-        <!-- Header -->
         <header class="header">
             <div>
                 <div class="header-title">Templates</div>
@@ -222,7 +241,6 @@
         <div class="content-area">
             <div class="max-w-screen">
                 
-                <!-- Statistics Row -->
                 <div class="summary-grid">
                     <div class="summary-card">
                         <div class="summary-header"><i class="ph ph-file-text"></i> Total Templates</div>
@@ -242,7 +260,6 @@
                     </div>
                 </div>
 
-                <!-- Toolbar -->
                 <div class="toolbar">
                     <div class="filters">
                         <div style="position: relative; flex: 1; min-width: 240px;">
@@ -264,7 +281,6 @@
                     </div>
                 </div>
 
-                <!-- Template Grid -->
                 <div class="template-grid" id="templateGrid">
                     <div class="empty-state" style="grid-column: 1 / -1; padding: 40px;">
                         <i class="ph ph-spinner spinner" style="font-size: 2rem; color: var(--accent-color);"></i>
@@ -275,7 +291,6 @@
         </div>
     </div>
 
-    <!-- Mobile Bottom Navigation -->
     <nav class="mobile-nav">
         <a onclick="goTo('index.html')" class="mobile-nav-item"><i class="ph ph-squares-four"></i><span>Home</span></a>
         <a onclick="goTo('contacts.html')" class="mobile-nav-item"><i class="ph ph-users"></i><span>Contacts</span></a>
@@ -284,72 +299,111 @@
         <a onclick="goTo('viewmails.html')" class="mobile-nav-item"><i class="ph ph-tray"></i><span>Inbox</span></a>
     </nav>
 
-    <!-- CREATE / EDIT MODAL -->
     <div class="modal-overlay" id="templateModal">
-        <div class="modal large">
+        <div class="modal" style="max-width: 1200px; width: 95%;">
             <div class="modal-header">
                 <h2 id="modalTitle">Create Template</h2>
                 <button class="close-btn" onclick="closeModal('templateModal')"><i class="ph ph-x"></i></button>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="editTemplateId">
+            <div class="modal-body modal-split-body">
                 
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label">Template Name *</label>
-                        <input type="text" class="form-control" id="tplName" placeholder="e.g. Cold Outreach - SaaS">
+                <div class="modal-editor-panel">
+                    <input type="hidden" id="editTemplateId">
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Template Name *</label>
+                            <input type="text" class="form-control" id="tplName" placeholder="e.g. Cold Outreach - SaaS">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Status</label>
+                            <select class="form-control" id="tplStatus">
+                                <option value="draft">Draft</option>
+                                <option value="active">Active</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label">Status</label>
-                        <select class="form-control" id="tplStatus">
-                            <option value="draft">Draft</option>
-                            <option value="active">Active</option>
-                            <option value="archived">Archived</option>
-                        </select>
+
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" id="tplDesc" placeholder="Brief summary of when to use this template">
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label class="form-label">Description</label>
-                    <input type="text" class="form-control" id="tplDesc" placeholder="Brief summary of when to use this template">
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Subject Line *</label>
+                        <input type="text" class="form-control" id="tplSubject" placeholder="Hello {{first_name}}, let's connect" oninput="renderTemplateLivePreview()">
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label">Subject Line *</label>
-                    <input type="text" class="form-control" id="tplSubject" placeholder="Hello {{first_name}}, let's connect">
-                </div>
-
-                <div class="form-group">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <label class="form-label" style="margin-bottom:0;">Email Body (HTML) *</label>
+                    <div class="form-group">
+                        <label class="form-label">Email Body (HTML) *</label>
                         
-                        <!-- Variable Dropdown -->
-                        <div style="position: relative;">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="toggleVariableDropdown()"><i class="ph ph-code"></i> Insert Variable <i class="ph ph-caret-down"></i></button>
-                            <div id="variableDropdown" style="display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 100; width: 180px; padding: 4px;">
-                                <div onclick="insertVariable('{{name}}')" style="padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">{{name}}</div>
-                                <div onclick="insertVariable('{{first_name}}')" style="padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">{{first_name}}</div>
-                                <div onclick="insertVariable('{{last_name}}')" style="padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">{{last_name}}</div>
-                                <div onclick="insertVariable('{{email}}')" style="padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">{{email}}</div>
-                                <div onclick="insertVariable('{{company}}')" style="padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">{{company}}</div>
-                                <div onclick="insertVariable('{{location}}')" style="padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">{{location}}</div>
+                        <div class="editor-container">
+                            <div class="editor-toolbar">
+                                <button type="button" class="toolbar-btn" onclick="execCmd('bold')" title="Bold"><i class="ph ph-text-b"></i></button>
+                                <button type="button" class="toolbar-btn" onclick="execCmd('italic')" title="Italic"><i class="ph ph-text-italic"></i></button>
+                                <button type="button" class="toolbar-btn" onclick="execCmd('underline')" title="Underline"><i class="ph ph-text-underline"></i></button>
+                                <button type="button" class="toolbar-btn" onclick="execCmd('strikeThrough')" title="Strikethrough"><i class="ph ph-text-strikethrough"></i></button>
+                                
+                                <div class="toolbar-divider"></div>
+                                
+                                <label class="toolbar-btn" title="Text Color" style="margin: 0; position: relative; overflow: hidden; display: flex;">
+                                    <i class="ph ph-palette"></i>
+                                    <input type="color" oninput="execCmdArg('foreColor', this.value)" style="position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; left: 0; top: 0;">
+                                </label>
+                                
+                                <label class="toolbar-btn" title="Highlight Text" style="margin: 0; position: relative; overflow: hidden; display: flex;">
+                                    <i class="ph ph-highlighter"></i>
+                                    <input type="color" oninput="execCmdArg('backColor', this.value)" style="position: absolute; opacity: 0; cursor: pointer; width: 100%; height: 100%; left: 0; top: 0;">
+                                </label>
+
+                                <div class="toolbar-divider"></div>
+                                
+                                <button type="button" class="toolbar-btn" onclick="execCmd('insertUnorderedList')" title="Bullet List"><i class="ph ph-list-bullets"></i></button>
+                                <button type="button" class="toolbar-btn" onclick="execCmd('insertOrderedList')" title="Numbered List"><i class="ph ph-list-numbers"></i></button>
+                                
+                                <div class="toolbar-divider"></div>
+                                
+                                <button type="button" class="toolbar-btn" onclick="execLink()" title="Insert Link"><i class="ph ph-link"></i></button>
+                                <button type="button" class="toolbar-btn" onclick="execCmd('removeFormat')" title="Clear Formatting"><i class="ph ph-eraser"></i></button>
+                                
+                                <div style="flex-grow: 1;"></div>
+                                <button type="button" class="toolbar-btn" id="btnToggleHtmlTpl" title="Toggle Raw HTML Mode" onclick="toggleHtmlModeTpl()" style="width: auto; padding: 0 12px; gap: 6px; border: 1px solid var(--border-color);">
+                                    <i class="ph ph-code"></i> <span style="font-size: 0.75rem; font-weight: 600;">Edit HTML</span>
+                                </button>
                             </div>
+                            <div class="editor-body" id="tplEditor" contenteditable="true" data-placeholder="Write your email body here..." oninput="renderTemplateLivePreview()"></div>
+                            <textarea class="editor-html-view" id="tplEditorHtml" placeholder="" oninput="renderTemplateLivePreview()"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-preview-panel">
+                    <div class="panel-tabs">
+                        <div class="panel-tab active" onclick="switchTplTab('variables')">Variables</div>
+                        <div class="panel-tab" onclick="switchTplTab('preview')">Live Preview</div>
+                    </div>
+
+                    <div class="panel-content active" id="tplTabVariables">
+                        <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--text-main);">Available Variables</h3>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Click a variable to insert it into the subject or body.</p>
+                        <div class="var-grid">
+                            <button type="button" class="var-btn" onclick="insertVariableTpl('{{name}}')">{{name}}</button>
+                            <button type="button" class="var-btn" onclick="insertVariableTpl('{{first_name}}')">{{first_name}}</button>
+                            <button type="button" class="var-btn" onclick="insertVariableTpl('{{last_name}}')">{{last_name}}</button>
+                            <button type="button" class="var-btn" onclick="insertVariableTpl('{{email}}')">{{email}}</button>
+                            <button type="button" class="var-btn" onclick="insertVariableTpl('{{company}}')">{{company}}</button>
+                            <button type="button" class="var-btn" onclick="insertVariableTpl('{{location}}')">{{location}}</button>
                         </div>
                     </div>
 
-                    <!-- Custom Rich Text Editor -->
-                    <div class="editor-container">
-                        <div class="editor-toolbar">
-                            <button type="button" class="toolbar-btn" onclick="execCmd('bold')" title="Bold"><i class="ph ph-text-b"></i></button>
-                            <button type="button" class="toolbar-btn" onclick="execCmd('italic')" title="Italic"><i class="ph ph-text-italic"></i></button>
-                            <button type="button" class="toolbar-btn" onclick="execCmd('underline')" title="Underline"><i class="ph ph-text-underline"></i></button>
-                            <div class="editor-divider" style="width:1px; background:var(--border-color); height:20px; margin:0 4px;"></div>
-                            <button type="button" class="toolbar-btn" onclick="execCmd('insertUnorderedList')" title="Bullet List"><i class="ph ph-list-bullets"></i></button>
-                            <button type="button" class="toolbar-btn" onclick="execCmd('insertOrderedList')" title="Numbered List"><i class="ph ph-list-numbers"></i></button>
-                            <div class="editor-divider" style="width:1px; background:var(--border-color); height:20px; margin:0 4px;"></div>
-                            <button type="button" class="toolbar-btn" onclick="execLink()" title="Insert Link"><i class="ph ph-link"></i></button>
+                    <div class="panel-content" id="tplTabPreview" style="padding: 16px; display: none; height: 100%;">
+                        <div class="preview-frame">
+                            <div class="preview-header">
+                                <div class="preview-field" style="margin-bottom: 4px;"><span class="preview-label">Subject:</span> <span style="font-weight: 600; color: var(--text-main);" id="livePrevSubject">...</span></div>
+                            </div>
+                            <div class="preview-body-frame" id="livePrevBody"></div>
                         </div>
-                        <div class="editor-body" id="tplEditor" contenteditable="true" data-placeholder="Write your email body here..."></div>
                     </div>
                 </div>
 
@@ -361,7 +415,6 @@
         </div>
     </div>
 
-    <!-- PREVIEW MODAL -->
     <div class="modal-overlay" id="previewModal">
         <div class="modal">
             <div class="modal-header">
@@ -371,23 +424,23 @@
             <div class="modal-body">
                 <div class="preview-box">
                     <div class="preview-field">
-                        <span class="preview-label">Subject Line (Preview)</span>
+                        <span class="preview-label">Subject Line</span>
                         <div class="preview-content" id="prevSubject" style="font-weight: 650;">...</div>
                     </div>
                     <div class="preview-field" style="margin-bottom: 0;">
-                        <span class="preview-label">Email Body (Preview)</span>
-                        <div class="preview-content" id="prevBody" style="min-height: 180px;">...</div>
+                        <span class="preview-label">Email Body</span>
+                        <div class="preview-content" id="prevBody" style="min-height: 250px; overflow-y: auto;">...</div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal('previewModal')">Close</button>
-                <button class="btn btn-primary" id="prevUseInCampaignBtn" onclick=""><i class="ph ph-megaphone"></i> Use in Campaign</button>
+                <button class="btn btn-outline" id="prevEditBtn"><i class="ph ph-pencil-simple"></i> Edit Template</button>
+                <button class="btn btn-primary" id="prevUseInCampaignBtn"><i class="ph ph-megaphone"></i> Use in Campaign</button>
             </div>
         </div>
     </div>
 
-    <!-- Toasts -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -398,6 +451,7 @@
         let supabaseClient;
         let currentUser = null;
         let templates = [];
+        let isTplHtmlMode = false;
 
         document.addEventListener('DOMContentLoaded', init);
 
@@ -409,7 +463,6 @@
                 
                 const { data: { user }, error: authErr } = await supabaseClient.auth.getUser();
                 if (authErr || !user) {
-                    // Fallback to localStorage session if present in CRM
                     const savedUser = localStorage.getItem('outreach_current_user');
                     if (savedUser) {
                         currentUser = JSON.parse(savedUser);
@@ -461,7 +514,6 @@
             const active = templates.filter(t => (t.status || '').toLowerCase() === 'active').length;
             const drafts = templates.filter(t => (t.status || '').toLowerCase() === 'draft' || !t.status).length;
             
-            // Recently updated within 7 days
             const weekAgo = new Date();
             weekAgo.setDate(weekAgo.getDate() - 7);
             const recent = templates.filter(t => new Date(t.updated_at || t.created_at) > weekAgo).length;
@@ -488,17 +540,11 @@
                 return matchSearch && matchStatus;
             });
 
-            // Sorting
             filtered.sort((a, b) => {
-                if (sortVal === 'updated_desc') {
-                    return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at);
-                } else if (sortVal === 'created_desc') {
-                    return new Date(b.created_at) - new Date(a.created_at);
-                } else if (sortVal === 'name_asc') {
-                    return (a.name || '').localeCompare(b.name || '');
-                } else if (sortVal === 'name_desc') {
-                    return (b.name || '').localeCompare(a.name || '');
-                }
+                if (sortVal === 'updated_desc') return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at);
+                else if (sortVal === 'created_desc') return new Date(b.created_at) - new Date(a.created_at);
+                else if (sortVal === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+                else if (sortVal === 'name_desc') return (b.name || '').localeCompare(a.name || '');
                 return 0;
             });
 
@@ -555,7 +601,7 @@
         }
 
         // ==========================================
-        // TEMPLATE ACTIONS (CRUD)
+        // TEMPLATE ACTIONS (CRUD) & EDITING
         // ==========================================
         function openCreateModal() {
             document.getElementById('modalTitle').textContent = 'Create Template';
@@ -565,11 +611,17 @@
             document.getElementById('tplSubject').value = '';
             document.getElementById('tplStatus').value = 'draft';
             document.getElementById('tplEditor').innerHTML = '';
+            document.getElementById('tplEditorHtml').value = '';
+            
+            switchTplTab('variables');
+            renderTemplateLivePreview();
+
             document.getElementById('templateModal').classList.add('show');
         }
 
         function openEditModal(id) {
-            const t = templates.find(item => item.id === id);
+            // Type-safe comparison: converts both to strings just in case the DB uses integers
+            const t = templates.find(item => String(item.id) === String(id));
             if (!t) return;
 
             document.getElementById('modalTitle').textContent = 'Edit Template';
@@ -578,7 +630,26 @@
             document.getElementById('tplDesc').value = t.description || '';
             document.getElementById('tplSubject').value = t.subject || '';
             document.getElementById('tplStatus').value = t.status || 'draft';
-            document.getElementById('tplEditor').innerHTML = t.html_body || t.text_body || '';
+            
+            document.getElementById('tplEditor').innerHTML = t.body_html || t.body_text || '';
+            document.getElementById('tplEditorHtml').value = t.body_html || t.body_text || '';
+            
+            // CRITICAL FIX: Reset the editor mode state cleanly every time the modal opens
+            isTplHtmlMode = false;
+            document.getElementById('tplEditorHtml').style.display = 'none';
+            document.getElementById('tplEditor').style.display = 'block';
+            
+            const btn = document.getElementById('btnToggleHtmlTpl');
+            if (btn) {
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.borderColor = 'var(--border-color)';
+                btn.style.color = 'var(--text-muted)';
+            }
+            
+            switchTplTab('variables');
+            renderTemplateLivePreview();
+
             document.getElementById('templateModal').classList.add('show');
         }
 
@@ -588,7 +659,9 @@
             const description = document.getElementById('tplDesc').value.trim();
             const subject = document.getElementById('tplSubject').value.trim();
             const status = document.getElementById('tplStatus').value;
-            const htmlBody = document.getElementById('tplEditor').innerHTML.trim();
+            
+            // Grabs from the correct editor based on the current mode
+            const htmlBody = isTplHtmlMode ? document.getElementById('tplEditorHtml').value.trim() : document.getElementById('tplEditor').innerHTML.trim();
             
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlBody;
@@ -603,35 +676,39 @@
                 name: name,
                 description: description,
                 subject: subject,
-                html_body: htmlBody,
-                text_body: textBody,
+                body_html: htmlBody,
+                body_text: textBody,
                 status: status,
                 updated_at: new Date().toISOString()
             };
 
             try {
                 if (id) {
-                    // Update
-                    const { error } = await supabaseClient
+                    // Append .select() to ensure the database actually matched and updated a row
+                    const { data, error } = await supabaseClient
                         .from('email_templates')
                         .update(payload)
                         .eq('id', id)
-                        .eq('user_id', currentUser.id);
+                        .eq('user_id', currentUser.id)
+                        .select(); 
 
                     if (error) throw error;
+                    
+                    // Catch silent failures (e.g., RLS issues or expired fallback sessions)
+                    if (!data || data.length === 0) {
+                        throw new Error("Update blocked. Your session may have expired.");
+                    }
                     showToast("Template updated successfully.", "success");
                 } else {
-                    // Insert
-                    const { error } = await supabaseClient
-                        .from('email_templates')
-                        .insert([payload]);
-
+                    const { error } = await supabaseClient.from('email_templates').insert([payload]);
                     if (error) throw error;
                     showToast("Template created successfully.", "success");
                 }
 
                 closeModal('templateModal');
-                loadTemplates();
+                
+                // CRITICAL FIX: Await the data reload so the local array updates before the user interacts again
+                await loadTemplates(); 
             } catch (err) {
                 console.error("Save template error:", err);
                 showToast("Unable to save template: " + err.message, "error");
@@ -639,7 +716,7 @@
         }
 
         async function duplicateTemplate(id) {
-            const t = templates.find(item => item.id === id);
+            const t = templates.find(item => String(item.id) === String(id));
             if (!t) return;
 
             const payload = {
@@ -647,8 +724,8 @@
                 name: `${t.name} Copy`,
                 description: t.description,
                 subject: t.subject,
-                html_body: t.html_body,
-                text_body: t.text_body,
+                body_html: t.body_html,
+                body_text: t.body_text,
                 status: 'draft'
             };
 
@@ -656,7 +733,7 @@
                 const { error } = await supabaseClient.from('email_templates').insert([payload]);
                 if (error) throw error;
                 showToast("Template duplicated successfully.", "success");
-                loadTemplates();
+                await loadTemplates();
             } catch (err) {
                 console.error("Duplicate error:", err);
                 showToast("Unable to duplicate template.", "error");
@@ -664,17 +741,13 @@
         }
 
         async function deleteTemplate(id) {
-            const t = templates.find(item => item.id === id);
+            const t = templates.find(item => String(item.id) === String(id));
             if (!t) return;
 
             if (!confirm(`Delete template "${t.name}"?\nThis action cannot be undone.`)) return;
 
             try {
-                const { error } = await supabaseClient
-                    .from('email_templates')
-                    .delete()
-                    .eq('id', id)
-                    .eq('user_id', currentUser.id);
+                const { error } = await supabaseClient.from('email_templates').delete().eq('id', id).eq('user_id', currentUser.id);
 
                 if (error) {
                     if (error.code === '23503' || (error.message && error.message.includes('foreign key'))) {
@@ -685,7 +758,7 @@
                 }
 
                 showToast("Template deleted successfully.", "success");
-                loadTemplates();
+                await loadTemplates();
             } catch (err) {
                 console.error("Delete error:", err);
                 showToast("Unable to delete template.", "error");
@@ -693,89 +766,130 @@
         }
 
         // ==========================================
-        // PREVIEW SYSTEM WITH SAMPLE DATA
+        // PREVIEW MODAL
         // ==========================================
         function previewTemplate(id) {
-            const t = templates.find(item => item.id === id);
+            const t = templates.find(item => String(item.id) === String(id));
             if (!t) return;
 
-            const sampleData = {
-                name: "Rahul Sharma",
-                first_name: "Rahul",
-                last_name: "Sharma",
-                email: "rahul.sharma@example.com",
-                company: "ABC Technologies",
-                location: "Pune"
-            };
-
+            const sampleData = { name: "Rahul Sharma", first_name: "Rahul", last_name: "Sharma", email: "rahul.sharma@example.com", company: "ABC Technologies", location: "Pune" };
             const resolveVars = (str) => {
                 if (!str) return '';
-                return str.replace(/{{name}}/g, sampleData.name)
-                          .replace(/{{first_name}}/g, sampleData.first_name)
-                          .replace(/{{last_name}}/g, sampleData.last_name)
-                          .replace(/{{email}}/g, sampleData.email)
-                          .replace(/{{company}}/g, sampleData.company)
-                          .replace(/{{location}}/g, sampleData.location);
+                return str.replace(/{{name}}/g, sampleData.name).replace(/{{first_name}}/g, sampleData.first_name).replace(/{{last_name}}/g, sampleData.last_name).replace(/{{email}}/g, sampleData.email).replace(/{{company}}/g, sampleData.company).replace(/{{location}}/g, sampleData.location);
             };
 
             document.getElementById('prevSubject').textContent = resolveVars(t.subject);
-            document.getElementById('prevBody').innerHTML = resolveVars(t.html_body || t.text_body);
             
-            // Use in Campaign redirect button
-            const useBtn = document.getElementById('prevUseInCampaignBtn');
-            useBtn.onclick = () => { window.location.href = `campaigns.html?template=${t.id}`; };
+            document.getElementById('prevBody').innerHTML = resolveVars(t.body_html || t.body_text);
+            
+            document.getElementById('prevUseInCampaignBtn').onclick = () => { window.location.href = `campaigns.html?template=${t.id}`; };
+            document.getElementById('prevEditBtn').onclick = () => {
+                closeModal('previewModal');
+                openEditModal(t.id);
+            };
 
             document.getElementById('previewModal').classList.add('show');
         }
 
         // ==========================================
-        // RICH EDITOR & VARIABLE TOOLS
+        // RICH EDITOR, LIVE PREVIEW & VARIABLE TOOLS
         // ==========================================
         function execCmd(command) {
+            if (isTplHtmlMode) return;
             document.execCommand(command, false, null);
             document.getElementById('tplEditor').focus();
+            renderTemplateLivePreview();
+        }
+
+        function execCmdArg(command, arg) {
+            if (isTplHtmlMode) return;
+            document.execCommand(command, false, arg);
+            document.getElementById('tplEditor').focus();
+            renderTemplateLivePreview();
         }
 
         function execLink() {
+            if (isTplHtmlMode) return;
             const url = prompt("Enter URL:", "https://");
             if (url) {
                 document.execCommand('createLink', false, url);
+                renderTemplateLivePreview();
             }
         }
 
-        function toggleVariableDropdown() {
-            const drop = document.getElementById('variableDropdown');
-            drop.style.display = drop.style.display === 'block' ? 'none' : 'block';
-        }
+        function toggleHtmlModeTpl() {
+            const editorDiv = document.getElementById('tplEditor');
+            const htmlArea = document.getElementById('tplEditorHtml');
+            const btn = document.getElementById('btnToggleHtmlTpl');
 
-        // Close dropdown when clicking outside
-        window.addEventListener('click', (e) => {
-            if (!e.target.closest('#variableDropdown') && !e.target.closest('button[onclick*="toggleVariableDropdown"]')) {
-                const drop = document.getElementById('variableDropdown');
-                if (drop) drop.style.display = 'none';
-            }
-        });
+            isTplHtmlMode = !isTplHtmlMode;
 
-        function insertVariable(variable) {
-            document.getElementById('variableDropdown').style.display = 'none';
-            const editor = document.getElementById('tplEditor');
-            editor.focus();
-            
-            if (window.getSelection && window.getSelection().rangeCount > 0) {
-                const range = window.getSelection().getRangeAt(0);
-                range.deleteContents();
-                range.insertNode(document.createTextNode(variable));
+            if (isTplHtmlMode) {
+                htmlArea.value = editorDiv.innerHTML;
+                editorDiv.style.display = 'none';
+                htmlArea.style.display = 'block';
+                btn.classList.add('active');
+                btn.style.background = '#EEF2FF';
+                btn.style.borderColor = 'var(--accent-color)';
+                btn.style.color = 'var(--accent-color)';
             } else {
-                editor.innerHTML += variable;
+                editorDiv.innerHTML = htmlArea.value;
+                htmlArea.style.display = 'none';
+                editorDiv.style.display = 'block';
+                btn.classList.remove('active');
+                btn.style.background = 'transparent';
+                btn.style.borderColor = 'var(--border-color)';
+                btn.style.color = 'var(--text-muted)';
             }
+        }
+
+        function insertVariableTpl(variable) {
+            if (isTplHtmlMode) {
+                const htmlArea = document.getElementById('tplEditorHtml');
+                const start = htmlArea.selectionStart;
+                const end = htmlArea.selectionEnd;
+                htmlArea.value = htmlArea.value.substring(0, start) + variable + htmlArea.value.substring(end);
+                htmlArea.focus();
+            } else {
+                const editor = document.getElementById('tplEditor');
+                editor.focus();
+                document.execCommand('insertText', false, variable);
+            }
+            renderTemplateLivePreview();
+        }
+
+        function switchTplTab(tab) {
+            document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel-content').forEach(c => c.style.display = 'none');
+            
+            if (tab === 'variables') {
+                document.querySelector('.panel-tab:nth-child(1)').classList.add('active');
+                document.getElementById('tplTabVariables').style.display = 'block';
+            } else {
+                document.querySelector('.panel-tab:nth-child(2)').classList.add('active');
+                document.getElementById('tplTabPreview').style.display = 'block';
+                renderTemplateLivePreview();
+            }
+        }
+
+        function renderTemplateLivePreview() {
+            const rawSub = document.getElementById('tplSubject').value;
+            const rawBody = isTplHtmlMode ? document.getElementById('tplEditorHtml').value : document.getElementById('tplEditor').innerHTML;
+            
+            const sampleData = { name: "Rahul Sharma", first_name: "Rahul", last_name: "Sharma", email: "rahul.sharma@example.com", company: "ABC Technologies", location: "Pune" };
+            const resolveVars = (str) => {
+                if (!str) return '';
+                return str.replace(/{{name}}/g, sampleData.name).replace(/{{first_name}}/g, sampleData.first_name).replace(/{{last_name}}/g, sampleData.last_name).replace(/{{email}}/g, sampleData.email).replace(/{{company}}/g, sampleData.company).replace(/{{location}}/g, sampleData.location);
+            };
+
+            document.getElementById('livePrevSubject').textContent = resolveVars(rawSub) || 'No Subject';
+            document.getElementById('livePrevBody').innerHTML = resolveVars(rawBody) || '<span style="color: #94A3B8; font-style: italic;">Body is empty...</span>';
         }
 
         // ==========================================
         // HELPERS & UTILITIES
         // ==========================================
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('show');
-        }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
@@ -806,17 +920,11 @@
         function timeAgo(dateString) {
             const date = new Date(dateString);
             const seconds = Math.floor((new Date() - date) / 1000);
-            
-            let interval = seconds / 31536000;
-            if (interval > 1) return Math.floor(interval) + " years ago";
-            interval = seconds / 2592000;
-            if (interval > 1) return Math.floor(interval) + " months ago";
-            interval = seconds / 86400;
-            if (interval > 1) return Math.floor(interval) + " days ago";
-            interval = seconds / 3600;
-            if (interval > 1) return Math.floor(interval) + " hours ago";
-            interval = seconds / 60;
-            if (interval > 1) return Math.floor(interval) + " minutes ago";
+            let interval = seconds / 31536000; if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000; if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400; if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600; if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60; if (interval > 1) return Math.floor(interval) + " minutes ago";
             return "Just now";
         }
     </script>
